@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { FiClock, FiTrendingUp, FiZap, FiBarChart2 } from "react-icons/fi";
-import { FaWhatsapp } from "react-icons/fa";
+import { FaWhatsapp, FaTelegramPlane } from "react-icons/fa";
 
 // ─── Types ───
 
@@ -26,6 +26,16 @@ interface SK24ChartTable {
   title: string;
   headers: string[];
   rows: string[][];
+}
+
+interface ChartRow {
+  date: string;
+  dswr: string;
+  frbd: string;
+  gzbd: string;
+  gali: string;
+  srgn: string;
+  dlbz: string;
 }
 
 // ─── Scroll Animation ───
@@ -80,6 +90,8 @@ export default function HomePage() {
   const [restResults, setRestResults] = useState<GameResult[]>([]);
   const [sk24Games, setSk24Games] = useState<SK24Game[]>([]);
   const [sk24Charts, setSk24Charts] = useState<SK24ChartTable[]>([]);
+  const [monthlyChart, setMonthlyChart] = useState<ChartRow[]>([]);
+  const [monthlyChartMeta, setMonthlyChartMeta] = useState<{ month: string; year: string }>({ month: "", year: "" });
   const [loading, setLoading] = useState(true);
   const containerRef = useScrollAnimation([loading]);
 
@@ -87,18 +99,27 @@ export default function HomePage() {
     const safeFetch = (url: string) =>
       fetch(url).then((r) => r.json()).catch(() => ({ success: false }));
 
+    const now = new Date();
+    const monthName = now.toLocaleString("en-US", { month: "long" }).toLowerCase();
+    const year = now.getFullYear().toString();
+
     Promise.all([
       safeFetch("/api/live-results"),
       safeFetch("/api/next-results"),
       safeFetch("/api/rest-results"),
       safeFetch("/api/sattaking24"),
       safeFetch("/api/sattaking24-chart"),
-    ]).then(([live, next, rest, sk24, sk24chart]) => {
+      safeFetch(`/api/monthly-chart?month=${monthName}&year=${year}`),
+    ]).then(([live, next, rest, sk24, sk24chart, chart]) => {
       if (live.success) setLiveResults(live.results || []);
       if (next.success) setNextResults(next.results || []);
       if (rest.success) setRestResults(rest.results || []);
       if (sk24.success) setSk24Games(sk24.games || []);
       if (sk24chart.success) setSk24Charts(sk24chart.tables || []);
+      if (chart.success) {
+        setMonthlyChart(chart.results || []);
+        setMonthlyChartMeta({ month: chart.month || monthName, year: chart.year || year });
+      }
       setLoading(false);
     });
   }, []);
@@ -178,6 +199,15 @@ export default function HomePage() {
               />
             )}
 
+            {/* Monthly Chart */}
+            {monthlyChart.length > 0 && (
+              <MonthlyChartSection
+                rows={monthlyChart}
+                month={monthlyChartMeta.month}
+                year={monthlyChartMeta.year}
+              />
+            )}
+
             {/* SK24 Charts */}
             {sk24Charts.length > 0 && (
               <SK24ChartsSection tables={sk24Charts} />
@@ -227,6 +257,9 @@ export default function HomePage() {
           <p className="text-lg md:text-xl font-black text-white">ADVERTISE YOUR GAME HERE</p>
           <p className="text-sm text-gray-400 mt-1">Contact us to feature your game on A7Satta.co</p>
         </div>
+
+        {/* Telegram */}
+        <TelegramSection />
 
         {/* SEO */}
         <SeoContent />
@@ -453,6 +486,122 @@ function WhatsAppContactSection() {
               <div className="text-xs font-semibold opacity-80">Click to chat instantly</div>
             </div>
           </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Monthly Chart Section ───
+
+const CHART_GAMES = [
+  { key: "dlbz" as const, name: "Delhi Bazar" },
+  { key: "srgn" as const, name: "Shri Ganesh" },
+  { key: "frbd" as const, name: "Faridabad" },
+  { key: "gzbd" as const, name: "Gaziabad" },
+  { key: "gali" as const, name: "Gali" },
+  { key: "dswr" as const, name: "Disawar" },
+];
+
+function MonthlyChartSection({
+  rows,
+  month,
+  year,
+}: {
+  rows: ChartRow[];
+  month: string;
+  year: string;
+}) {
+  const title = `${month.charAt(0).toUpperCase() + month.slice(1)} ${year} Monthly Chart`;
+
+  return (
+    <section className="sa opacity-0 translate-y-8">
+      <div className="flex items-center gap-2.5 md:gap-3 mb-4">
+        <div className="p-2.5 rounded-xl bg-amber-500 text-white shrink-0 shadow-md">
+          <FiBarChart2 size={18} />
+        </div>
+        <div>
+          <h2 className="text-lg md:text-xl font-black text-gray-900">{title}</h2>
+          <p className="text-xs text-gray-400">Delhi Bazar, Shri Ganesh, Faridabad, Gaziabad, Gali, Disawar</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border-2 border-gray-300 overflow-hidden shadow-sm">
+        <div className="bg-amber-500 text-white text-center py-2.5 px-3 text-sm md:text-base font-bold">
+          {title}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm md:text-base border-collapse">
+            <thead>
+              <tr className="bg-gray-800 text-white text-[10px] md:text-xs uppercase">
+                <th className="py-2 px-1.5 md:px-3 font-semibold border border-gray-300">Date</th>
+                {CHART_GAMES.map((g) => (
+                  <th key={g.key} className="py-2 px-1.5 md:px-3 font-semibold border border-gray-300">
+                    {g.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr key={ri} className={`text-center ${ri % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                  <td className="py-1.5 px-1.5 md:px-3 font-bold text-red-500 border border-gray-200 text-xs md:text-sm whitespace-nowrap">
+                    {row.date}
+                  </td>
+                  {CHART_GAMES.map((g) => (
+                    <td
+                      key={g.key}
+                      className="py-1.5 px-1.5 md:px-3 font-mono font-bold border border-gray-200 text-gray-800"
+                    >
+                      {row[g.key] || "--"}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Telegram Section ───
+
+function TelegramSection() {
+  const telegramLink = "https://t.me/kingfast24";
+
+  return (
+    <section className="sa opacity-0 translate-y-8">
+      <div className="bg-[#1a1a2e] rounded-2xl overflow-hidden border border-gray-700">
+        {/* Header */}
+        <div className="bg-[#0088cc] text-white text-center py-4 px-4">
+          <FaTelegramPlane className="w-8 h-8 mx-auto mb-2" />
+          <p className="font-black text-lg md:text-xl">Satta King Daily Passing Tricks</p>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 md:px-8 py-5 text-center space-y-4">
+          <p className="text-gray-300 text-sm md:text-base leading-relaxed">
+            Delhi Bazar se Disawar tak daily passing pane ke liye hamare Telegram channel ko join karein.
+          </p>
+
+          <a
+            href={telegramLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 bg-[#0088cc] hover:bg-[#0077b5] text-white font-black text-base md:text-lg px-8 py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105"
+          >
+            <FaTelegramPlane className="w-6 h-6" />
+            <div className="text-left">
+              <div className="font-black leading-tight">Join Telegram Channel</div>
+              <div className="text-xs font-semibold opacity-80">Daily 2-3 game passing updates</div>
+            </div>
+          </a>
+
+          <p className="text-gray-400 text-xs md:text-sm">
+            Channel join karke website ko bookmark kar lo, taaki aapko rozana 2-3 game passing aur latest updates milti rahein.
+          </p>
         </div>
       </div>
     </section>
