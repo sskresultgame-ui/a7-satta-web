@@ -13,10 +13,20 @@ export async function scrapeGameChart(slug: string, month?: string, year?: strin
   });
 
   const $home = cheerio.load(homeHtml);
+  // Handle alternate spellings
+  const slugVariants: Record<string, string[]> = {
+    desawer: ["desawer", "desawar"],
+    desawar: ["desawar", "desawer"],
+  };
+  const slugsToTry = slugVariants[slug] || [slug];
+
   let chartUrl = "";
-  $home(`a[href*="/${slug}/satta-result-chart/"]`).each((_i, el) => {
-    if (!chartUrl) chartUrl = $home(el).attr("href") || "";
-  });
+  for (const s of slugsToTry) {
+    $home(`a[href*="/${s}/satta-result-chart/"]`).each((_i, el) => {
+      if (!chartUrl) chartUrl = $home(el).attr("href") || "";
+    });
+    if (chartUrl) break;
+  }
 
   if (!chartUrl) return null;
 
@@ -44,16 +54,17 @@ export async function scrapeGameChart(slug: string, month?: string, year?: strin
     columns.push($(el).text().trim().toUpperCase());
   });
 
-  const abbrMap: Record<string, string> = {
-    DSWR: "desawar", FRBD: "faridabad", GZBD: "ghaziabad",
-    GALI: "gali", SRGN: "shri-ganesh",
+  const abbrMap: Record<string, string[]> = {
+    DSWR: ["desawar", "desawer"], FRBD: ["faridabad"], GZBD: ["ghaziabad"],
+    GALI: ["gali"], SRGN: ["shri-ganesh"],
   };
 
   const gameNameUpper = slug.replace(/-/g, " ").toUpperCase();
   let gameColIndex = -1;
 
   columns.forEach((col, i) => {
-    if (abbrMap[col] === slug) gameColIndex = i;
+    const slugs = abbrMap[col];
+    if (slugs && slugs.includes(slug)) gameColIndex = i;
   });
   if (gameColIndex === -1) {
     columns.forEach((col, i) => {

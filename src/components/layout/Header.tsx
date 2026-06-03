@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/context/LanguageContext";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -11,6 +12,7 @@ const NAV_LINKS = [
 
 export function Header() {
   const pathname = usePathname();
+  const { lang } = useLanguage();
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -31,7 +33,7 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Nav links - always visible */}
+          {/* Nav links */}
           <nav className="flex items-center gap-1">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href);
@@ -56,7 +58,9 @@ export function Header() {
       {/* Yellow marquee bar */}
       <div className="bg-amber-500 text-white py-1 overflow-hidden w-full">
         <div className="animate-marquee whitespace-nowrap text-[10px] md:text-xs font-bold">
-          Welcome to A7Satta.co &mdash; Superfast Live A7 Satta Results &bull; Gali, Desawar, Ghaziabad, Faridabad, Shri Ganesh, Delhi Bazar &bull; 100+ Games &bull; Free Monthly Chart Records 2015-2026 &bull; Updated Every Minute
+          {lang === "hi"
+            ? "A7Satta.co में आपका स्वागत है — सुपरफास्ट लाइव A7 सट्टा रिजल्ट • गली, देसावर, गाज़ियाबाद, फरीदाबाद, श्री गणेश, दिल्ली बाजार • 100+ गेम्स • फ्री मंथली चार्ट रिकॉर्ड 2015-2026 • हर मिनट अपडेट"
+            : "Welcome to A7Satta.co — Superfast Live A7 Satta Results • Gali, Desawar, Ghaziabad, Faridabad, Shri Ganesh, Delhi Bazar • 100+ Games • Free Monthly Chart Records 2015-2026 • Updated Every Minute"}
         </div>
       </div>
     </header>

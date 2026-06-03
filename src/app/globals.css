@@ -63,6 +63,34 @@ body {
 ::-webkit-scrollbar-track { background: #f3f4f6; }
 ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 3px; }
 
+/* Dark skeleton shimmer */
+.skeleton-dark {
+  background: linear-gradient(90deg, #2a2a4a 25%, #353560 50%, #2a2a4a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Result number pop */
+@keyframes resultPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-resultPop {
+  animation: resultPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Game row stagger entrance */
+.game-row {
+  opacity: 0;
+  transform: translateX(-12px);
+  animation: gameRowIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes gameRowIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* WhatsApp float animation */
 @keyframes floatBounce {
   0%, 100% { transform: translateY(0); }
