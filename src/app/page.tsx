@@ -128,6 +128,21 @@ export default function HomePage() {
 
   const updatedAt = format(new Date(), "dd MMMM yyyy, hh:mm a") + " IST";
 
+  // Sort SK24 games by time sequence
+  const parseTimeToMinutes = (timeStr: string): number => {
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!match) return 9999;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[3].toUpperCase();
+    if (period === "AM" && hours === 12) hours = 0;
+    if (period === "PM" && hours !== 12) hours += 12;
+    return hours * 60 + minutes;
+  };
+  const sk24GamesSorted = [...sk24Games].sort(
+    (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)
+  );
+
   const sk24Names = new Set(sk24Games.map(g => g.name.toLowerCase().replace(/\s+/g, "")));
   const isInSK24 = (name: string) => sk24Names.has(name.toLowerCase().replace(/\s+/g, ""));
   const filteredLive = liveResults.filter(g => !isInSK24(g.name));
@@ -185,15 +200,15 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            {/* SK24 Results */}
-            {sk24Games.length > 0 && (
+            {/* SK24 Results - sorted by time */}
+            {sk24GamesSorted.length > 0 && (
               <GameCardSection
                 title={t("आज के A7 सट्टा रिजल्ट", "Today A7 Satta Results", lang)}
                 subtitle={t("इंटरनेट पर सबसे तेज़ A7 सट्टा रिजल्ट", "Fastest A7 Satta result on internet", lang)}
                 icon={<FiZap size={18} />}
                 headerBg="bg-blue-600"
                 accentColor="text-blue-600"
-                games={sk24Games}
+                games={sk24GamesSorted}
                 isLive
                 lang={lang}
               />
@@ -473,37 +488,31 @@ function GameCardSection({
               return (
                 <tr
                   key={game.name + i}
-                  className={`${
-                    i % 2 === 0 ? "bg-white" : "bg-gray-50"
-                  } hover:bg-yellow-50 transition`}
+                  className="bg-gray-100 hover:bg-yellow-50 transition"
                 >
                   {/* Game Name */}
-                  <td className="border border-black px-3 py-3">
-                    <div className="font-black uppercase text-sm md:text-base">
+                  <td className="border border-black px-1 py-2 bg-amber-50 text-center">
+                    <div className="font-black uppercase text-sm md:text-base leading-none">
                       {game.name}
                     </div>
-
-                    <div className="text-xs text-gray-500 mt-1">
-                      {game.time}
-                    </div>
-
+                    <div className="text-[10px] text-black leading-none mt-1">{game.time}</div>
                     <Link
                       href={`/chart/${slug}`}
-                      className="inline-block mt-1 text-xs font-bold text-blue-600 hover:text-blue-800"
+                      className="inline-block text-[10px] font-bold text-blue-600 hover:text-blue-800 leading-none mt-0.5"
                     >
                       Chart →
                     </Link>
                   </td>
 
                   {/* Yesterday */}
-                  <td className="border border-black px-3 py-3 text-center">
+                  <td className="border border-black px-3 py-1.5 text-center">
                     <span className="font-mono font-black text-2xl md:text-3xl text-gray-800">
                       {game.yesterday || "--"}
                     </span>
                   </td>
 
                   {/* Today */}
-                  <td className="border border-black px-3 py-3 text-center">
+                  <td className="border border-black px-3 py-1.5 text-center">
                     {hasResult ? (
                       <span className="font-mono font-black text-2xl md:text-3xl text-green-600">
                         {game.today}
