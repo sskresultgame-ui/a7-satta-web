@@ -298,6 +298,105 @@ export default function HomePage() {
 
 // ─── Game Results Section ───
 
+// function GameCardSection({
+//   title,
+//   subtitle,
+//   icon,
+//   headerBg,
+//   accentColor,
+//   games,
+//   isLive,
+//   lang,
+// }: {
+//   title: string;
+//   subtitle: string;
+//   icon: React.ReactNode;
+//   headerBg: string;
+//   accentColor: string;
+//   games: (GameResult | SK24Game)[];
+//   isLive?: boolean;
+//   lang: "hi" | "en";
+// }) {
+//   return (
+//     <section className="sa opacity-0 translate-y-8">
+//       {/* Section Header */}
+//       <div className="flex items-center gap-2.5 md:gap-3 mb-4">
+//         <div className="min-w-0">
+//           <h2 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2">
+//             {title}
+//             {isLive && <span className="w-2 h-2 bg-red-500 rounded-full animate-live-pulse" />}
+//           </h2>
+//           <p className="text-xs text-gray-400">{subtitle}</p>
+//         </div>
+//         <div className={`ml-auto px-3 py-1 rounded-full text-xs font-bold bg-gray-100 border border-gray-200 ${accentColor} shrink-0`}>
+//           {games.length} {t("गेम्स", "Games", lang)}
+//         </div>
+//       </div>
+
+//       {/* Game List */}
+//       <div className="space-y-2 md:space-y-2.5">
+//         {games.map((game, i) => {
+//           const slug = game.name.toLowerCase().replace(/\s+/g, "-");
+//           const hasResult = game.today && game.today !== "XX" && game.today !== "--";
+//           return (
+//             <div
+//               key={game.name + i}
+//               className="game-row group bg-gray-50 rounded-2xl px-3.5 md:px-5 py-3 md:py-3.5 flex items-center gap-3 md:gap-4 shadow-sm shadow-gray-200 transition-all duration-300 hover:shadow-md hover:shadow-gray-300"
+//               style={{ animationDelay: `${i * 50}ms` }}
+//             >
+//               {/* Left: Name + Time */}
+//               <div className="flex-1 min-w-0">
+//                 <h3 className="font-black text-gray-900 uppercase text-[13px] md:text-sm leading-tight truncate group-hover:text-amber-600 transition-colors duration-300">
+//                   {game.name}
+//                 </h3>
+//                 <p className="text-[10px] md:text-xs text-gray-400 font-medium mt-0.5">{game.time}</p>
+//               </div>
+
+//               {/* Center: Yesterday + Today */}
+//               <div className="flex items-center gap-2 md:gap-3 shrink-0">
+//                 {/* Yesterday */}
+//                 <div className="text-center min-w-[40px] md:min-w-[50px]">
+//                   <p className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t("पिछला कल", "Yesterday", lang)}</p>
+//                   <p className="font-mono font-extrabold text-gray-800 text-xl md:text-3xl leading-none mt-0.5">
+//                     {game.yesterday || "--"}
+//                   </p>
+//                 </div>
+
+//                 {/* Divider */}
+//                 <div className="w-px h-8 md:h-10 bg-gray-300" />
+
+//                 {/* Today */}
+//                 <div className="text-center min-w-[40px] md:min-w-[50px]">
+//                   <p className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t("आज", "Today", lang)}</p>
+//                   {hasResult ? (
+//                     <p className="font-mono font-black text-green-600 text-xl md:text-3xl leading-none mt-0.5 animate-resultPop">
+//                       {game.today}
+//                     </p>
+//                   ) : isLive ? (
+//                     <span className="inline-flex items-center gap-0.5 text-[10px] md:text-xs font-bold text-red-500 mt-1">
+//                       <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-live-pulse" />
+//                       {t("रुको", "WAIT", lang)}
+//                     </span>
+//                   ) : (
+//                     <p className="font-mono font-black text-gray-400 text-xl md:text-3xl leading-none mt-0.5">--</p>
+//                   )}
+//                 </div>
+//               </div>
+
+//               {/* Right: Chart */}
+//               <Link
+//                 href={`/chart/${slug}`}
+//                 className="shrink-0 text-[10px] md:text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
+//               >
+//                 {t("चार्ट", "Chart", lang)} &rarr;
+//               </Link>
+//             </div>
+//           );
+//         })}
+//       </div>
+//     </section>
+//   );
+// }
 function GameCardSection({
   title,
   subtitle,
@@ -319,85 +418,115 @@ function GameCardSection({
 }) {
   return (
     <section className="sa opacity-0 translate-y-8">
-      {/* Section Header */}
-      <div className="flex items-center gap-2.5 md:gap-3 mb-4">
-        <div className="min-w-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div>
           <h2 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2">
             {title}
-            {isLive && <span className="w-2 h-2 bg-red-500 rounded-full animate-live-pulse" />}
+            {isLive && (
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-live-pulse" />
+            )}
           </h2>
-          <p className="text-xs text-gray-400">{subtitle}</p>
+
+          <p className="text-xs text-gray-500">
+            {subtitle}
+          </p>
         </div>
-        <div className={`ml-auto px-3 py-1 rounded-full text-xs font-bold bg-gray-100 border border-gray-200 ${accentColor} shrink-0`}>
-          {games.length} {t("गेम्स", "Games", lang)}
+
+        <div
+          className={`ml-auto px-3 py-1 rounded-full text-xs font-bold bg-gray-100 border border-gray-300 ${accentColor}`}
+        >
+          {games.length} Games
         </div>
       </div>
 
-      {/* Game List */}
-      <div className="space-y-2 md:space-y-2.5">
-        {games.map((game, i) => {
-          const slug = game.name.toLowerCase().replace(/\s+/g, "-");
-          const hasResult = game.today && game.today !== "XX" && game.today !== "--";
-          return (
-            <div
-              key={game.name + i}
-              className="game-row group bg-gray-50 rounded-2xl px-3.5 md:px-5 py-3 md:py-3.5 flex items-center gap-3 md:gap-4 shadow-sm shadow-gray-200 transition-all duration-300 hover:shadow-md hover:shadow-gray-300"
-              style={{ animationDelay: `${i * 50}ms` }}
-            >
-              {/* Left: Name + Time */}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-black text-gray-900 uppercase text-[13px] md:text-sm leading-tight truncate group-hover:text-amber-600 transition-colors duration-300">
-                  {game.name}
-                </h3>
-                <p className="text-[10px] md:text-xs text-gray-400 font-medium mt-0.5">{game.time}</p>
-              </div>
+      {/* Table */}
+      <div className="overflow-x-auto border-2 border-black rounded-xl">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-black text-white">
+              <th className="border border-black px-3 py-3 text-left">
+                Game
+              </th>
 
-              {/* Center: Yesterday + Today */}
-              <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                {/* Yesterday */}
-                <div className="text-center min-w-[40px] md:min-w-[50px]">
-                  <p className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t("पिछला कल", "Yesterday", lang)}</p>
-                  <p className="font-mono font-extrabold text-gray-800 text-xl md:text-3xl leading-none mt-0.5">
-                    {game.yesterday || "--"}
-                  </p>
-                </div>
+              <th className="border border-black px-3 py-3 text-center">
+                Yesterday
+              </th>
 
-                {/* Divider */}
-                <div className="w-px h-8 md:h-10 bg-gray-300" />
+              <th className="border border-black px-3 py-3 text-center">
+                Today
+              </th>
+            </tr>
+          </thead>
 
-                {/* Today */}
-                <div className="text-center min-w-[40px] md:min-w-[50px]">
-                  <p className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t("आज", "Today", lang)}</p>
-                  {hasResult ? (
-                    <p className="font-mono font-black text-green-600 text-xl md:text-3xl leading-none mt-0.5 animate-resultPop">
-                      {game.today}
-                    </p>
-                  ) : isLive ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] md:text-xs font-bold text-red-500 mt-1">
-                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-live-pulse" />
-                      {t("रुको", "WAIT", lang)}
+          <tbody>
+            {games.map((game, i) => {
+              const slug = game.name
+                .toLowerCase()
+                .replace(/\s+/g, "-");
+
+              const hasResult =
+                game.today &&
+                game.today !== "XX" &&
+                game.today !== "--";
+
+              return (
+                <tr
+                  key={game.name + i}
+                  className={`${
+                    i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } hover:bg-yellow-50 transition`}
+                >
+                  {/* Game Name */}
+                  <td className="border border-black px-3 py-3">
+                    <div className="font-black uppercase text-sm md:text-base">
+                      {game.name}
+                    </div>
+
+                    <div className="text-xs text-gray-500 mt-1">
+                      {game.time}
+                    </div>
+
+                    <Link
+                      href={`/chart/${slug}`}
+                      className="inline-block mt-1 text-xs font-bold text-blue-600 hover:text-blue-800"
+                    >
+                      Chart →
+                    </Link>
+                  </td>
+
+                  {/* Yesterday */}
+                  <td className="border border-black px-3 py-3 text-center">
+                    <span className="font-mono font-black text-2xl md:text-3xl text-gray-800">
+                      {game.yesterday || "--"}
                     </span>
-                  ) : (
-                    <p className="font-mono font-black text-gray-400 text-xl md:text-3xl leading-none mt-0.5">--</p>
-                  )}
-                </div>
-              </div>
+                  </td>
 
-              {/* Right: Chart */}
-              <Link
-                href={`/chart/${slug}`}
-                className="shrink-0 text-[10px] md:text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
-              >
-                {t("चार्ट", "Chart", lang)} &rarr;
-              </Link>
-            </div>
-          );
-        })}
+                  {/* Today */}
+                  <td className="border border-black px-3 py-3 text-center">
+                    {hasResult ? (
+                      <span className="font-mono font-black text-2xl md:text-3xl text-green-600">
+                        {game.today}
+                      </span>
+                    ) : isLive ? (
+                      <span className="font-bold text-red-500 text-sm md:text-base">
+                       XX
+                      </span>
+                    ) : (
+                      <span className="font-mono font-black text-2xl md:text-3xl text-gray-400">
+                        --
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </section>
   );
 }
-
 // ─── SK24 Charts Section ───
 
 function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "hi" | "en" }) {
@@ -463,118 +592,246 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
 
 // ─── WhatsApp Contact Section ───
 
+// function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
+//   const phone = "918901302607";
+
+//   return (
+//     <section className="sa opacity-0 translate-y-8">
+//       <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-400">
+//         {/* Header */}
+//         <div className="text-center py-4 px-4 bg-amber-500">
+//           <p className="text-white font-black text-2xl md:text-3xl tracking-wide">
+//             A7 SATTA
+//           </p>
+//           <p className="text-blue-100 font-bold text-sm md:text-base mt-1 italic">
+//             {t("गेम खेलने के लिए संपर्क करें", "Game play karne ke liye contact kare", lang)}
+//           </p>
+//         </div>
+
+//         {/* Online Khaiwal + Game Timing */}
+//         <div className="bg-[#1a1a2e] text-white px-4 md:px-8 py-5">
+//           <div className="text-center mb-4">
+//             <p className="text-amber-400 font-black text-lg md:text-xl">
+//               Online Khaiwal
+//             </p>
+//             <p className="text-gray-400 text-sm font-semibold">
+//               ( Roni bhai Khaiwal )
+//             </p>
+//           </div>
+
+//           <div className="text-center mb-4">
+//             <p className="text-amber-400 font-bold text-sm md:text-base uppercase tracking-wider">
+//               {t("सभी गेम टाइमिंग", "All Game Timing", lang)}
+//             </p>
+//           </div>
+
+//           <div className="space-y-2.5 max-w-sm mx-auto">
+//             {[
+//               { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
+//               { name: t("मणिपुर", "Manipur", lang), time: "2:30" },
+//               { name: t("UP बाज़ार", "UP Bazar", lang), time: "3:30" },
+//               { name: t("पलवल City", "Palwal City", lang), time: "4:30" },
+//               { name: t("मथूरा City", "Mathura City", lang), time: "6:00" },
+//             ].map((game) => (
+//               <div
+//                 key={game.name}
+//                 className="flex items-center justify-between bg-white/10 rounded-xl px-4 py-2.5 border border-white/10"
+//               >
+//                 <span className="font-bold text-sm md:text-base">{game.name}</span>
+//                 <span className="text-amber-400 font-mono font-bold text-sm">
+//                   {game.time} Last time
+//                 </span>
+//               </div>
+//             ))}
+//           </div>
+
+//           <p className="text-center text-gray-400 text-xs md:text-sm mt-4">
+//             {t(
+//               "फोन पे, गूगल पे, पेटीएम स्कैनर माँग लो",
+//               "Phone Pe, Google Pe, Paytm Scanner mang lo",
+//               lang
+//             )}
+//           </p>
+//         </div>
+
+//         {/* Rate + Payment */}
+//         <div className="px-4 md:px-8 py-4 grid grid-cols-2 gap-3 max-w-md mx-auto">
+//           <div className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-center">
+//             <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
+//               {t("जोड़ी रेट", "Jodi Rate", lang)}
+//             </p>
+//             <p className="text-blue-600 font-black text-xl mt-1">10 - 960</p>
+//           </div>
+//           <div className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-center">
+//             <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
+//               {t("हरूफ रेट", "Haruf Rate", lang)}
+//             </p>
+//             <p className="text-blue-600 font-black text-xl mt-1">100 - 960</p>
+//           </div>
+//         </div>
+
+//         {/* Payment Options */}
+//         <div className="px-4 py-3 text-center">
+//           <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
+//             {t("भुगतान के तरीके", "Payment Options", lang)}
+//           </p>
+//           <p className="text-gray-700 text-sm font-semibold">PAYTM // PHONE PAY // GOOGLE PAY // BANK TRANSFER</p>
+//         </div>
+
+//         {/* Phone */}
+//         <div className="px-4 py-3 text-center">
+//           <a
+//             href={`tel:+${phone}`}
+//             className="inline-block text-blue-600 font-black text-2xl md:text-3xl tracking-widest hover:text-blue-700 transition-colors border-t-2 border-b-2 border-blue-200 py-3 px-6"
+//           >
+//             +{phone}
+//           </a>
+//         </div>
+
+//         {/* WhatsApp CTA */}
+//         <div className="px-4 py-4 text-center">
+//           <p className="text-gray-500 text-sm font-bold mb-3">
+//             {t("गेम खेलने के लिए नीचे क्लिक करें", "Game play karne ke liye niche click kare", lang)}
+//           </p>
+//           <a
+//             href={`https://wa.me/${phone}?text=${encodeURIComponent("A7 SATTA")}`}
+//             target="_blank"
+//             rel="noopener noreferrer"
+//             className="inline-flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-lg shadow-green-500/20 transition-all hover:scale-105"
+//           >
+//             <FaWhatsapp className="w-7 h-7" />
+//             <div className="text-left">
+//               <div className="text-lg font-black leading-tight">WhatsApp Now</div>
+//               <div className="text-xs font-semibold opacity-80">
+//                 {t("तुरंत चैट करने के लिए क्लिक करें", "Click to chat instantly", lang)}
+//               </div>
+//             </div>
+//           </a>
+//         </div>
+//       </div>
+//     </section>
+//   );
+// }
 function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
   const phone = "918901302607";
 
+  const games = [
+                  { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
+                  { name: t("मणिपुर", "Manipur", lang), time: "2:30" },
+                  { name: t("UP बाज़ार", "UP Bazar", lang), time: "3:30" },
+                  { name: t("पलवल City", "Palwal City", lang), time: "4:30" },
+                  { name: t("मथूरा City", "Mathura City", lang), time: "6:00" },
+                ];
+
   return (
     <section className="sa opacity-0 translate-y-8">
-      <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-400">
-        {/* Header */}
-        <div className="text-center py-4 px-4 bg-amber-500">
-          <p className="text-white font-black text-2xl md:text-3xl tracking-wide">
-            A7 SATTA
+      <div className="relative overflow-hidden rounded-3xl border-4 border-dashed border-red-500 bg-gradient-to-b from-yellow-300 via-yellow-100 to-white shadow-xl">
+
+        {/* Top Header */}
+        <div className="text-center px-4 pt-6 pb-3">
+          <p className="text-lg md:text-xl font-black text-gray-900">
+            ⭐ Direct Company No.1 Khaiwal ⭐
           </p>
-          <p className="text-blue-100 font-bold text-sm md:text-base mt-1 italic">
-            {t("गेम खेलने के लिए संपर्क करें", "Game play karne ke liye contact kare", lang)}
-          </p>
+
+          <h2 className="mt-3 text-2xl md:text-4xl font-black text-[#1a1a2e]">
+           
+            Roni bhai Khaiwal
+          </h2>
         </div>
 
-        {/* Online Khaiwal + Game Timing */}
-        <div className="bg-[#1a1a2e] text-white px-4 md:px-8 py-5">
-          <div className="text-center mb-4">
-            <p className="text-amber-400 font-black text-lg md:text-xl">
-              Online Khaiwal
-            </p>
-            <p className="text-gray-400 text-sm font-semibold">
-              ( Roni bhai Khaiwal )
-            </p>
-          </div>
+        {/* Timing List */}
+        <div className="max-w-xl mx-auto px-4 pb-5">
+          <div className="bg-white/60 backdrop-blur rounded-2xl border-2 border-yellow-500 p-4">
 
-          <div className="text-center mb-4">
-            <p className="text-amber-400 font-bold text-sm md:text-base uppercase tracking-wider">
-              {t("सभी गेम टाइमिंग", "All Game Timing", lang)}
-            </p>
-          </div>
-
-          <div className="space-y-2.5 max-w-sm mx-auto">
-            {[
-              { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
-              { name: t("मणिपुर", "Manipur", lang), time: "2:30" },
-              { name: t("UP बाज़ार", "UP Bazar", lang), time: "3:30" },
-              { name: t("पलवल City", "Palwal City", lang), time: "4:30" },
-              { name: t("मथूरा City", "Mathura City", lang), time: "6:00" },
-            ].map((game) => (
+            {games.map((game) => (
               <div
                 key={game.name}
-                className="flex items-center justify-between bg-white/10 rounded-xl px-4 py-2.5 border border-white/10"
+                className="flex items-center justify-between py-2 border-b border-dashed border-gray-400 last:border-0"
               >
-                <span className="font-bold text-sm md:text-base">{game.name}</span>
-                <span className="text-amber-400 font-mono font-bold text-sm">
-                  {game.time} Last time
+                <div className="flex items-center gap-2 font-bold text-gray-800">
+                  <span className="text-xl">⏰</span>
+                  <span>{game.name}</span>
+                </div>
+
+                <span className="font-black text-[#1a1a2e]">
+                  {game.time}
                 </span>
               </div>
             ))}
           </div>
-
-          <p className="text-center text-gray-400 text-xs md:text-sm mt-4">
-            {t(
-              "फोन पे, गूगल पे, पेटीएम स्कैनर माँग लो",
-              "Phone Pe, Google Pe, Paytm Scanner mang lo",
-              lang
-            )}
-          </p>
         </div>
 
-        {/* Rate + Payment */}
-        <div className="px-4 md:px-8 py-4 grid grid-cols-2 gap-3 max-w-md mx-auto">
-          <div className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-center">
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-              {t("जोड़ी रेट", "Jodi Rate", lang)}
+        {/* Rates */}
+        <div className="grid grid-cols-2 gap-3 px-4 max-w-md mx-auto">
+          <div className="bg-white border-2 border-yellow-500 rounded-2xl p-3 text-center">
+            <p className="text-xs font-bold text-gray-500 uppercase">
+              Jodi Rate
             </p>
-            <p className="text-blue-600 font-black text-xl mt-1">10 - 960</p>
+            <p className="text-2xl font-black text-blue-700">
+              10-960
+            </p>
           </div>
-          <div className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-center">
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-              {t("हरूफ रेट", "Haruf Rate", lang)}
+
+          <div className="bg-white border-2 border-yellow-500 rounded-2xl p-3 text-center">
+            <p className="text-xs font-bold text-gray-500 uppercase">
+              Haruf Rate
             </p>
-            <p className="text-blue-600 font-black text-xl mt-1">100 - 960</p>
+            <p className="text-2xl font-black text-blue-700">
+              100-960
+            </p>
           </div>
         </div>
 
-        {/* Payment Options */}
-        <div className="px-4 py-3 text-center">
-          <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
-            {t("भुगतान के तरीके", "Payment Options", lang)}
+        {/* Payment */}
+        <div className="text-center px-4 py-5">
+          <p className="font-bold text-gray-700 text-sm">
+            PAYTM • PHONEPE • GOOGLE PAY • BANK TRANSFER
           </p>
-          <p className="text-gray-700 text-sm font-semibold">PAYTM // PHONE PAY // GOOGLE PAY // BANK TRANSFER</p>
+
+          <p className="mt-2 text-sm font-semibold text-red-600">
+            PhonePe, GooglePay & Paytm Scanner Available
+          </p>
         </div>
 
         {/* Phone */}
-        <div className="px-4 py-3 text-center">
+        <div className="text-center px-4">
           <a
             href={`tel:+${phone}`}
-            className="inline-block text-blue-600 font-black text-2xl md:text-3xl tracking-widest hover:text-blue-700 transition-colors border-t-2 border-b-2 border-blue-200 py-3 px-6"
+            className="inline-block text-3xl md:text-4xl font-black text-blue-700 border-b-4 border-blue-700"
           >
             +{phone}
           </a>
         </div>
 
-        {/* WhatsApp CTA */}
-        <div className="px-4 py-4 text-center">
-          <p className="text-gray-500 text-sm font-bold mb-3">
-            {t("गेम खेलने के लिए नीचे क्लिक करें", "Game play karne ke liye niche click kare", lang)}
+        {/* Footer Text */}
+        <div className="text-center px-4 pt-5">
+          <p className="font-black text-xl md:text-2xl text-[#1a1a2e]">
+            😊😊 Roni bhai Khaiwal 😊😊
           </p>
+
+          <p className="mt-2 text-sm md:text-base font-bold text-gray-700">
+            Game play karne ke liye niche link par click kare
+          </p>
+        </div>
+
+        {/* WhatsApp Button */}
+        <div className="px-4 pb-8 pt-5 flex justify-center">
           <a
-            href={`https://wa.me/${phone}?text=${encodeURIComponent("A7 SATTA")}`}
+            href={`https://wa.me/${phone}?text=${encodeURIComponent(
+              "A7 SATTA"
+            )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-lg shadow-green-500/20 transition-all hover:scale-105"
+            className="flex items-center gap-4 bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-black text-lg shadow-lg hover:scale-105 transition-all"
           >
-            <FaWhatsapp className="w-7 h-7" />
+            <FaWhatsapp className="text-4xl" />
+
             <div className="text-left">
-              <div className="text-lg font-black leading-tight">WhatsApp Now</div>
-              <div className="text-xs font-semibold opacity-80">
-                {t("तुरंत चैट करने के लिए क्लिक करें", "Click to chat instantly", lang)}
+              <div className="text-xl leading-none">
+                WhatsApp
+              </div>
+              <div className="text-sm opacity-90">
+                Click To Chat
               </div>
             </div>
           </a>
