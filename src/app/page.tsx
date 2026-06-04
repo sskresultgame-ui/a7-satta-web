@@ -417,7 +417,7 @@ function GameCardSection({
   lang: "hi" | "en";
 }) {
   return (
-    <section className="sa opacity-0 translate-y-8">
+    <section className="opacity-100">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div>
