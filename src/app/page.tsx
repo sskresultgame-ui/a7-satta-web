@@ -139,15 +139,27 @@ export default function HomePage() {
     if (period === "PM" && hours !== 12) hours += 12;
     return hours * 60 + minutes;
   };
-  const sk24GamesSorted = [...sk24Games].sort(
-    (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)
-  );
+  // Games to hide from all sections
+  const hiddenGames = new Set([
+    "gaziabad night",
+    "punjab laxmi",
+    "new sahibabad",
+    "super max",
+    "brij rani",
+    "verra king",
+    "mahalaxmi bazar",
+  ]);
+  const isHidden = (name: string) => hiddenGames.has(name.toLowerCase().trim());
+
+  const sk24GamesSorted = [...sk24Games]
+    .filter(g => !isHidden(g.name))
+    .sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
 
   const sk24Names = new Set(sk24Games.map(g => g.name.toLowerCase().replace(/\s+/g, "")));
   const isInSK24 = (name: string) => sk24Names.has(name.toLowerCase().replace(/\s+/g, ""));
-  const filteredLive = liveResults.filter(g => !isInSK24(g.name));
-  const filteredNext = nextResults.filter(g => !isInSK24(g.name));
-  const filteredRest = restResults.filter(g => !isInSK24(g.name));
+  const filteredLive = liveResults.filter(g => !isInSK24(g.name) && !isHidden(g.name));
+  const filteredNext = nextResults.filter(g => !isInSK24(g.name) && !isHidden(g.name));
+  const filteredRest = restResults.filter(g => !isInSK24(g.name) && !isHidden(g.name));
 
   return (
     <div ref={containerRef} className="bg-white">
