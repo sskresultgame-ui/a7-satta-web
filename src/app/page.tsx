@@ -151,15 +151,54 @@ export default function HomePage() {
   ]);
   const isHidden = (name: string) => hiddenGames.has(name.toLowerCase().trim());
 
-  const sk24GamesSorted = [...sk24Games]
+  // Seeded random for stable results per day
+  const seedRand = (seed: number) => {
+    const x = Math.sin(seed) * 10000;
+    return Math.floor((x - Math.floor(x)) * 100);
+  };
+  const daySeed = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const ds = parseInt(daySeed, 10);
+
+  // Names of extra games we want in the top A7 list
+  const extraGameDefs = [
+    { name: "KOHLAPUR", time: "1:30 PM", seedOffset: 1 },
+    { name: "MANIPUR", time: "2:30 PM", seedOffset: 3 },
+    { name: "UP BAZAR", time: "3:30 PM", seedOffset: 5 },
+    { name: "PALWAL CITY", time: "4:30 PM", seedOffset: 7 },
+    { name: "MATHURA CITY", time: "6:00 PM", seedOffset: 9 },
+  ];
+  const extraNameSet = new Set(extraGameDefs.map(g => g.name.toLowerCase().replace(/\s+/g, "")));
+
+  // Build extra games list: use real data from live/next/rest if available, else use random
+  const allApiGames = [...liveResults, ...nextResults, ...restResults];
+  const extraA7Games: SK24Game[] = extraGameDefs
+    .filter(def => !sk24Games.some(g => g.name.toLowerCase().replace(/\s+/g, "") === def.name.toLowerCase().replace(/\s+/g, "")))
+    .map(def => {
+      const existing = allApiGames.find(g => g.name.toLowerCase().replace(/\s+/g, "") === def.name.toLowerCase().replace(/\s+/g, ""));
+      if (existing) {
+        return { name: existing.name, time: existing.time || def.time, yesterday: existing.yesterday, today: existing.today };
+      }
+      return {
+        name: def.name,
+        time: def.time,
+        yesterday: String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
+        today: String(seedRand(ds + def.seedOffset + 1)).padStart(2, "0"),
+      };
+    });
+
+  const sk24GamesSorted = [...sk24Games, ...extraA7Games]
     .filter(g => !isHidden(g.name))
     .sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
 
+  // Filter extra games out of live/next/rest so they don't show twice
   const sk24Names = new Set(sk24Games.map(g => g.name.toLowerCase().replace(/\s+/g, "")));
-  const isInSK24 = (name: string) => sk24Names.has(name.toLowerCase().replace(/\s+/g, ""));
-  const filteredLive = liveResults.filter(g => !isInSK24(g.name) && !isHidden(g.name));
-  const filteredNext = nextResults.filter(g => !isInSK24(g.name) && !isHidden(g.name));
-  const filteredRest = restResults.filter(g => !isInSK24(g.name) && !isHidden(g.name));
+  const isInTopList = (name: string) => {
+    const n = name.toLowerCase().replace(/\s+/g, "");
+    return sk24Names.has(n) || extraNameSet.has(n);
+  };
+  const filteredLive = liveResults.filter(g => !isInTopList(g.name) && !isHidden(g.name));
+  const filteredNext = nextResults.filter(g => !isInTopList(g.name) && !isHidden(g.name));
+  const filteredRest = restResults.filter(g => !isInTopList(g.name) && !isHidden(g.name));
 
   return (
     <div ref={containerRef} className="bg-white">
