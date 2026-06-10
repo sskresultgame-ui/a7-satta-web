@@ -27,6 +27,10 @@ export default function GameChartPage({
   const now = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(now.getFullYear(), now.getMonth()));
 
+  // Custom games use a separate API
+  const customGameKeys = ["kohlapur", "manipur", "palwal-city", "mathura-city"];
+  const isCustomGame = customGameKeys.includes(gameCode);
+
   const fetchChart = async (date: Date) => {
     setLoading(true);
     const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
@@ -34,7 +38,13 @@ export default function GameChartPage({
     const y = String(date.getFullYear());
 
     try {
-      const res = await fetch(`/api/game-chart?slug=${gameCode}&month=${m}&year=${y}`);
+      let url: string;
+      if (isCustomGame) {
+        url = `/api/custom-games/chart?game=${gameCode}&month=${date.getMonth() + 1}&year=${y}`;
+      } else {
+        url = `/api/game-chart?slug=${gameCode}&month=${m}&year=${y}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setRows(data.results || []);

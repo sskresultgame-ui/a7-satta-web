@@ -93,6 +93,7 @@ export default function HomePage() {
   const [sk24Charts, setSk24Charts] = useState<SK24ChartTable[]>([]);
   const [monthlyChart, setMonthlyChart] = useState<ChartRow[]>([]);
   const [monthlyChartMeta, setMonthlyChartMeta] = useState<{ month: string; year: string }>({ month: "", year: "" });
+  const [customGames, setCustomGames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const containerRef = useScrollAnimation([loading]);
   const { lang } = useLanguage();
@@ -112,7 +113,8 @@ export default function HomePage() {
       safeFetch("/api/sattaking24"),
       safeFetch("/api/sattaking24-chart"),
       safeFetch(`/api/monthly-chart?month=${monthName}&year=${year}`),
-    ]).then(([live, next, rest, sk24, sk24chart, chart]) => {
+      safeFetch("/api/custom-games"),
+    ]).then(([live, next, rest, sk24, sk24chart, chart, custom]) => {
       if (live.success) setLiveResults(live.results || []);
       if (next.success) setNextResults(next.results || []);
       if (rest.success) setRestResults(rest.results || []);
@@ -122,23 +124,13 @@ export default function HomePage() {
         setMonthlyChart(chart.results || []);
         setMonthlyChartMeta({ month: chart.month || monthName, year: chart.year || year });
       }
+      if (custom.success) setCustomGames(custom.games || {});
       setLoading(false);
     });
   }, []);
 
   const updatedAt = format(new Date(), "dd MMMM yyyy, hh:mm a") + " IST";
 
-  // Sort SK24 games by time sequence
-  const parseTimeToMinutes = (timeStr: string): number => {
-    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-    if (!match) return 9999;
-    let hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    const period = match[3].toUpperCase();
-    if (period === "AM" && hours === 12) hours = 0;
-    if (period === "PM" && hours !== 12) hours += 12;
-    return hours * 60 + minutes;
-  };
   // Games to hide from all sections
   const hiddenGames = new Set([
     "gaziabad night",
@@ -159,46 +151,94 @@ export default function HomePage() {
   const daySeed = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const ds = parseInt(daySeed, 10);
 
-  // Names of extra games we want in the top A7 list
-  const extraGameDefs = [
-    { name: "KOHLAPUR", time: "1:30 PM", seedOffset: 1 },
-    { name: "MANIPUR", time: "2:30 PM", seedOffset: 3 },
-    { name: "UP BAZAR", time: "3:30 PM", seedOffset: 5 },
-    { name: "PALWAL CITY", time: "4:30 PM", seedOffset: 7 },
-    { name: "MATHURA CITY", time: "6:00 PM", seedOffset: 9 },
+  // ─── 1ST SECTION: Fixed 9 games ───
+  const topGameDefs = [
+    { name: "KOHLAPUR", time: "1:30 PM", seedOffset: 1, customKey: "kohlapur", aliases: [] as string[] },
+    { name: "MANIPUR", time: "2:30 PM", seedOffset: 3, customKey: "manipur", aliases: [] },
+    { name: "UP BAZAR", time: "3:30 PM", seedOffset: 5, customKey: "", aliases: ["upbazar"] },
+    { name: "PALWAL CITY", time: "4:30 PM", seedOffset: 7, customKey: "palwal-city", aliases: [] },
+    { name: "FRIDABAD", time: "5:45 PM", seedOffset: 11, customKey: "", aliases: ["faridabad", "frbd"] },
+    { name: "MATHURA CITY", time: "6:50 PM", seedOffset: 9, customKey: "mathura-city", aliases: [] },
+    { name: "GAZIABAD", time: "9:20 PM", seedOffset: 13, customKey: "", aliases: ["ghaziabad", "gzbd"] },
+    { name: "GALI", time: "11:20 PM", seedOffset: 15, customKey: "", aliases: [] },
+    { name: "DISAWAR", time: "1:30 AM", seedOffset: 17, customKey: "", aliases: ["desawar", "desawer", "dswr"] },
   ];
-  const extraNameSet = new Set(extraGameDefs.map(g => g.name.toLowerCase().replace(/\s+/g, "")));
 
-  // Build extra games list: use real data from live/next/rest if available, else use random
-  const allApiGames = [...liveResults, ...nextResults, ...restResults];
-  const extraA7Games: SK24Game[] = extraGameDefs
-    .filter(def => !sk24Games.some(g => g.name.toLowerCase().replace(/\s+/g, "") === def.name.toLowerCase().replace(/\s+/g, "")))
-    .map(def => {
-      const existing = allApiGames.find(g => g.name.toLowerCase().replace(/\s+/g, "") === def.name.toLowerCase().replace(/\s+/g, ""));
-      if (existing) {
-        return { name: existing.name, time: existing.time || def.time, yesterday: existing.yesterday, today: existing.today };
-      }
+  const allApiGames = [...liveResults, ...nextResults, ...restResults, ...sk24Games];
+  const topGames: SK24Game[] = topGameDefs.map(def => {
+    const norm = def.name.toLowerCase().replace(/\s+/g, "");
+    const allNames = [norm, ...def.aliases];
+    // Check scraped data first (match by name or aliases)
+    const existing = allApiGames.find(g => {
+      const gn = g.name.toLowerCase().replace(/\s+/g, "");
+      return allNames.some(n => n === gn);
+    });
+    if (existing) {
+      return { name: def.name, time: def.time, yesterday: existing.yesterday, today: existing.today };
+    }
+    // Check custom games from Firebase
+    if (def.customKey && customGames[def.customKey]) {
       return {
         name: def.name,
         time: def.time,
         yesterday: String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
-        today: String(seedRand(ds + def.seedOffset + 1)).padStart(2, "0"),
+        today: customGames[def.customKey],
       };
-    });
+    }
+    // No data available - show XX
+    return {
+      name: def.name,
+      time: def.time,
+      yesterday: String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
+      today: "XX",
+    };
+  });
 
-  const sk24GamesSorted = [...sk24Games, ...extraA7Games]
-    .filter(g => !isHidden(g.name))
-    .sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
-
-  // Filter extra games out of live/next/rest so they don't show twice
-  const sk24Names = new Set(sk24Games.map(g => g.name.toLowerCase().replace(/\s+/g, "")));
-  const isInTopList = (name: string) => {
-    const n = name.toLowerCase().replace(/\s+/g, "");
-    return sk24Names.has(n) || extraNameSet.has(n);
+  // ─── 3RD SECTION: Specific games ───
+  const section3GameNames = [
+    "sadar bazar", "gwalior", "delhi bazar", "delhi matka",
+    "shri ganesh", "agra", "faridabad", "alwar",
+    "gaziabad", "dwarka", "gali",
+  ];
+  // Alternate name mappings for 3rd section
+  const section3Aliases: Record<string, string[]> = {
+    "faridabad": ["fridabad", "frbd"],
+    "gaziabad": ["ghaziabad", "gzbd"],
+    "delhi bazar": ["delhibazar", "dlbz"],
+    "shri ganesh": ["shriganesh", "srgn"],
   };
-  const filteredLive = liveResults.filter(g => !isInTopList(g.name) && !isHidden(g.name));
-  const filteredNext = nextResults.filter(g => !isInTopList(g.name) && !isHidden(g.name));
-  const filteredRest = restResults.filter(g => !isInTopList(g.name) && !isHidden(g.name));
+  const section3Games: SK24Game[] = section3GameNames.map(name => {
+    const norm = name.toLowerCase().replace(/\s+/g, "");
+    const aliases = section3Aliases[name.toLowerCase()] || [];
+    const allNames = [norm, ...aliases];
+    const existing = allApiGames.find(g => {
+      const gn = g.name.toLowerCase().replace(/\s+/g, "");
+      return allNames.some(n => n === gn);
+    });
+    if (existing) {
+      return { name: name.toUpperCase(), time: existing.time || "", yesterday: existing.yesterday, today: existing.today };
+    }
+    return { name: name.toUpperCase(), time: "", yesterday: "--", today: "--" };
+  });
+
+  // Filter remaining games: exclude top 9 games and 3rd section games from other sections
+  const allFixedNames = new Set<string>();
+  topGameDefs.forEach(g => {
+    allFixedNames.add(g.name.toLowerCase().replace(/\s+/g, ""));
+    g.aliases.forEach(a => allFixedNames.add(a));
+  });
+  section3GameNames.forEach(n => {
+    allFixedNames.add(n.toLowerCase().replace(/\s+/g, ""));
+    const aliases = section3Aliases[n.toLowerCase()] || [];
+    aliases.forEach(a => allFixedNames.add(a));
+  });
+  const isInFixedList = (name: string) => {
+    const n = name.toLowerCase().replace(/\s+/g, "");
+    return allFixedNames.has(n);
+  };
+  const filteredLive = liveResults.filter(g => !isInFixedList(g.name) && !isHidden(g.name));
+  const filteredNext = nextResults.filter(g => !isInFixedList(g.name) && !isHidden(g.name));
+  const filteredRest = restResults.filter(g => !isInFixedList(g.name) && !isHidden(g.name));
 
   return (
     <div ref={containerRef} className="bg-white">
@@ -251,21 +291,47 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            {/* SK24 Results - sorted by time */}
-            {sk24GamesSorted.length > 0 && (
-              <GameCardSection
-                title={t("आज के A7 सट्टा रिजल्ट", "Today A7 Satta Results", lang)}
-                subtitle={t("इंटरनेट पर सबसे तेज़ A7 सट्टा रिजल्ट", "Fastest A7 Satta result on internet", lang)}
-                icon={<FiZap size={18} />}
-                headerBg="bg-blue-600"
-                accentColor="text-blue-600"
-                games={sk24GamesSorted}
-                isLive
-                lang={lang}
-              />
+            {/* ─── 1ST SECTION: Top 9 Games ─── */}
+            <GameCardSection
+              title={t("आज के A7 सट्टा रिजल्ट", "Today A7 Satta Results", lang)}
+              subtitle={t("इंटरनेट पर सबसे तेज़ A7 सट्टा रिजल्ट", "Fastest A7 Satta result on internet", lang)}
+              icon={<FiZap size={18} />}
+              headerBg="bg-blue-600"
+              accentColor="text-blue-600"
+              games={topGames}
+              isLive
+              lang={lang}
+            />
+
+            {/* ─── 2ND SECTION: Monthly Chart ─── */}
+            <MonthlyChartSection
+              initialRows={monthlyChart}
+              initialMonth={monthlyChartMeta.month}
+              initialYear={monthlyChartMeta.year}
+              lang={lang}
+            />
+
+            {/* ─── 3RD SECTION: Specific Games ─── */}
+            <GameCardSection
+              title={t("अन्य गेम रिजल्ट", "Other Game Results", lang)}
+              subtitle={t("सदर बाज़ार, ग्वालियर, दिल्ली बाज़ार और अन्य", "Sadar Bazar, Gwalior, Delhi Bazar & more", lang)}
+              icon={<FiBarChart2 size={18} />}
+              headerBg="bg-purple-600"
+              accentColor="text-purple-600"
+              games={section3Games}
+              isLive
+              lang={lang}
+            />
+
+            {/* ─── 4TH SECTION: WhatsApp / Khaiwal ─── */}
+            <WhatsAppContactSection lang={lang} />
+
+            {/* SK24 Charts */}
+            {sk24Charts.length > 0 && (
+              <SK24ChartsSection tables={sk24Charts} lang={lang} />
             )}
 
-            {/* LIVE */}
+            {/* LIVE (remaining) */}
             {filteredLive.length > 0 && (
               <GameCardSection
                 title={t("लाइव रिजल्ट", "LIVE Results", lang)}
@@ -279,23 +345,7 @@ export default function HomePage() {
               />
             )}
 
-            {/* Monthly Chart */}
-            <MonthlyChartSection
-              initialRows={monthlyChart}
-              initialMonth={monthlyChartMeta.month}
-              initialYear={monthlyChartMeta.year}
-              lang={lang}
-            />
-
-            {/* SK24 Charts */}
-            {sk24Charts.length > 0 && (
-              <SK24ChartsSection tables={sk24Charts} lang={lang} />
-            )}
-
-            {/* WhatsApp Contact */}
-            <WhatsAppContactSection lang={lang} />
-
-            {/* UPCOMING */}
+            {/* UPCOMING (remaining) */}
             {filteredNext.length > 0 && (
               <GameCardSection
                 title={t("आने वाले रिजल्ट", "Upcoming Results", lang)}
@@ -308,7 +358,7 @@ export default function HomePage() {
               />
             )}
 
-            {/* DECLARED */}
+            {/* DECLARED (remaining) */}
             {filteredRest.length > 0 && (
               <GameCardSection
                 title={t("घोषित रिजल्ट", "Declared Results", lang)}
@@ -780,7 +830,8 @@ function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
                   { name: t("मणिपुर", "Manipur", lang), time: "2:30" },
                   { name: t("UP बाज़ार", "UP Bazar", lang), time: "3:30" },
                   { name: t("पलवल City", "Palwal City", lang), time: "4:30" },
-                  { name: t("मथूरा City", "Mathura City", lang), time: "6:00" },
+                  { name: "Fridabad", time: "5:45" },
+                  { name: t("मथूरा City", "Mathura City", lang), time: "6:50" },
                 ];
 
   return (
