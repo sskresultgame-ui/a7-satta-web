@@ -18,11 +18,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "A7 Satta | Live A7 Satta Result 2026 | Gali Desawar Faridabad Ghaziabad",
+    default:
+      "A7 Satta | Live A7 Satta Result 2026 | Gali Desawar Faridabad Ghaziabad",
     template: "%s | A7 Satta",
   },
   description:
     "A7Satta.co - Get superfast live A7 Satta results for Gali, Desawar, Ghaziabad, Faridabad, Shri Ganesh, Delhi Bazar & 100+ games. Monthly chart records. Updated daily.",
+  verification: {
+    google: "iwfZBGPCqdL74ht1H9V0bVgdfHVKvW-qXETMj6c7_Uk",
+  },
+
   keywords: [
     "a7 satta",
     "satta king result",
