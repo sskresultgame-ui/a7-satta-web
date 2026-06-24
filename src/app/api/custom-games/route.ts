@@ -63,12 +63,27 @@ export async function GET(req: NextRequest) {
     // Single-date mode (homepage)
     const today = searchParams.get("date") || new Date().toISOString().slice(0, 10);
     const snap = await adminDb.collection(COLLECTION).doc(today).get();
+    const data = snap.data() || {};
 
     if (!snap.exists) {
-      return Response.json({ success: true, games: {} });
+      return Response.json({ success: true, games: {}, khaiwal: null });
     }
+    
+    return Response.json({
+      success: true,
+      games: {
+        kohlapur: data.kohlapur || "",
+        manipur: data.manipur || "",
+        "palwal-city": data["palwal-city"] || "",
+        "mathura-city": data["mathura-city"] || "",
+      },
+      khaiwal: data.khaiwal || null,   // ✅ ADD THIS
+    });
+    // if (!snap.exists) {
+    //   return Response.json({ success: true, games: {} });
+    // }
 
-    return Response.json({ success: true, games: snap.data() || {} });
+    // return Response.json({ success: true, games: snap.data() || {} });
   } catch (error) {
     return Response.json(
       { success: false, error: (error as Error).message },
@@ -80,27 +95,73 @@ export async function GET(req: NextRequest) {
 // POST - Save custom game values (with simple auth)
 export async function POST(req: NextRequest) {
   try {
+    // const body = await req.json();
+    // console.log("BODY >>>", body);
+    // const { email, password, games,khaiwal, khaiwalName, whatsapp,date } = body;
+    // const finalKhaiwal = khaiwal || {
+    //   name: khaiwalName,
+    //   whatsapp: whatsapp,
+    // };
+    // if (!isAuthed(email, password)) {
+    //   return Response.json(
+    //     { success: false, error: "Invalid credentials" },
+    //     { status: 401 }
+    //   );
+    // }
+
+    // const targetDate = date || new Date().toISOString().slice(0, 10);
+
+    // // Merge with existing data for that date
+    // const docRef = adminDb.collection(COLLECTION).doc(targetDate);
+    // const existing = await docRef.get();
+    // const existingData = existing.exists ? existing.data() || {} : {};
+
+    // const updatedData = { ...existingData, ...games, khaiwal: finalKhaiwal ?? existingData.khaiwal ?? null, updatedAt: Date.now() };
+    // await docRef.set(updatedData);
+
+    // return Response.json({ success: true, games: updatedData });
     const body = await req.json();
-    const { email, password, games, date } = body;
 
-    if (!isAuthed(email, password)) {
-      return Response.json(
-        { success: false, error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
+const {
+  email,
+  password,
+  games,
+  khaiwalName,
+  whatsapp,
+  khaiwal,
+  date,
+} = body;
 
-    const targetDate = date || new Date().toISOString().slice(0, 10);
+if (!isAuthed(email, password)) {
+  return Response.json(
+    { success: false, error: "Invalid credentials" },
+    { status: 401 }
+  );
+}
 
-    // Merge with existing data for that date
-    const docRef = adminDb.collection(COLLECTION).doc(targetDate);
-    const existing = await docRef.get();
-    const existingData = existing.exists ? existing.data() || {} : {};
+const targetDate = date || new Date().toISOString().slice(0, 10);
 
-    const updatedData = { ...existingData, ...games, updatedAt: Date.now() };
-    await docRef.set(updatedData);
+const docRef = adminDb.collection(COLLECTION).doc(targetDate);
+const existing = await docRef.get();
+const existingData = existing.exists ? existing.data() || {} : {};
 
-    return Response.json({ success: true, games: updatedData });
+// ✅ FIXED LOGIC (IMPORTANT)
+const finalKhaiwal =
+  khaiwal ||
+  (khaiwalName && whatsapp
+    ? { name: khaiwalName, whatsapp }
+    : existingData.khaiwal || null);
+
+const updatedData = {
+  ...existingData,
+  ...games,
+  khaiwal: finalKhaiwal,
+  updatedAt: Date.now(),
+};
+
+await docRef.set(updatedData);
+
+return Response.json({ success: true, games: updatedData });
   } catch (error) {
     return Response.json(
       { success: false, error: (error as Error).message },

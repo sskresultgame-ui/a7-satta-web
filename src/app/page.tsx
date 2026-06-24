@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { FiClock, FiTrendingUp, FiZap, FiBarChart2, FiCalendar, FiChevronDown } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { useLanguage, t } from "@/context/LanguageContext";
+import { log } from "console";
 
 // ─── Types ───
 
@@ -95,6 +96,10 @@ export default function HomePage() {
   const [monthlyChartMeta, setMonthlyChartMeta] = useState<{ month: string; year: string }>({ month: "", year: "" });
   const [customGames, setCustomGames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [khaiwal, setKhaiwal] = useState<any>(null);
+  console.log("{khaiwal}>>>",khaiwal);
+  
+  
   const containerRef = useScrollAnimation([loading]);
   const { lang } = useLanguage();
 
@@ -115,6 +120,8 @@ export default function HomePage() {
       safeFetch(`/api/monthly-chart?month=${monthName}&year=${year}`),
       safeFetch("/api/custom-games"),
     ]).then(([live, next, rest, sk24, sk24chart, chart, custom]) => {
+      console.log("CUSTOM RESPONSE", custom);
+      console.log("KHAIWAL", custom?.khaiwal);
       if (live.success) setLiveResults(live.results || []);
       if (next.success) setNextResults(next.results || []);
       if (rest.success) setRestResults(rest.results || []);
@@ -123,6 +130,11 @@ export default function HomePage() {
       if (chart.success) {
         setMonthlyChart(chart.results || []);
         setMonthlyChartMeta({ month: chart.month || monthName, year: chart.year || year });
+      }
+      if (custom.success) {
+        console.log("CUSTOM API RESPONSE =>", custom);
+        setCustomGames(custom.games || {});
+        setKhaiwal(custom.khaiwal || null); // ✅ ADD THIS
       }
       if (custom.success) setCustomGames(custom.games || {});
       setLoading(false);
@@ -324,7 +336,7 @@ export default function HomePage() {
             />
 
             {/* ─── 4TH SECTION: WhatsApp / Khaiwal ─── */}
-            <WhatsAppContactSection lang={lang} />
+            <WhatsAppContactSection lang={lang} khaiwal={khaiwal} />
 
             {/* SK24 Charts */}
             {sk24Charts.length > 0 && (
@@ -412,107 +424,7 @@ export default function HomePage() {
   );
 }
 
-// ─── Game Results Section ───
 
-// function GameCardSection({
-//   title,
-//   subtitle,
-//   icon,
-//   headerBg,
-//   accentColor,
-//   games,
-//   isLive,
-//   lang,
-// }: {
-//   title: string;
-//   subtitle: string;
-//   icon: React.ReactNode;
-//   headerBg: string;
-//   accentColor: string;
-//   games: (GameResult | SK24Game)[];
-//   isLive?: boolean;
-//   lang: "hi" | "en";
-// }) {
-//   return (
-//     <section className="sa opacity-0 translate-y-8">
-//       {/* Section Header */}
-//       <div className="flex items-center gap-2.5 md:gap-3 mb-4">
-//         <div className="min-w-0">
-//           <h2 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2">
-//             {title}
-//             {isLive && <span className="w-2 h-2 bg-red-500 rounded-full animate-live-pulse" />}
-//           </h2>
-//           <p className="text-xs text-gray-400">{subtitle}</p>
-//         </div>
-//         <div className={`ml-auto px-3 py-1 rounded-full text-xs font-bold bg-gray-100 border border-gray-200 ${accentColor} shrink-0`}>
-//           {games.length} {t("गेम्स", "Games", lang)}
-//         </div>
-//       </div>
-
-//       {/* Game List */}
-//       <div className="space-y-2 md:space-y-2.5">
-//         {games.map((game, i) => {
-//           const slug = game.name.toLowerCase().replace(/\s+/g, "-");
-//           const hasResult = game.today && game.today !== "XX" && game.today !== "--";
-//           return (
-//             <div
-//               key={game.name + i}
-//               className="game-row group bg-gray-50 rounded-2xl px-3.5 md:px-5 py-3 md:py-3.5 flex items-center gap-3 md:gap-4 shadow-sm shadow-gray-200 transition-all duration-300 hover:shadow-md hover:shadow-gray-300"
-//               style={{ animationDelay: `${i * 50}ms` }}
-//             >
-//               {/* Left: Name + Time */}
-//               <div className="flex-1 min-w-0">
-//                 <h3 className="font-black text-gray-900 uppercase text-[13px] md:text-sm leading-tight truncate group-hover:text-amber-600 transition-colors duration-300">
-//                   {game.name}
-//                 </h3>
-//                 <p className="text-[10px] md:text-xs text-gray-400 font-medium mt-0.5">{game.time}</p>
-//               </div>
-
-//               {/* Center: Yesterday + Today */}
-//               <div className="flex items-center gap-2 md:gap-3 shrink-0">
-//                 {/* Yesterday */}
-//                 <div className="text-center min-w-[40px] md:min-w-[50px]">
-//                   <p className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t("पिछला कल", "Yesterday", lang)}</p>
-//                   <p className="font-mono font-extrabold text-gray-800 text-xl md:text-3xl leading-none mt-0.5">
-//                     {game.yesterday || "--"}
-//                   </p>
-//                 </div>
-
-//                 {/* Divider */}
-//                 <div className="w-px h-8 md:h-10 bg-gray-300" />
-
-//                 {/* Today */}
-//                 <div className="text-center min-w-[40px] md:min-w-[50px]">
-//                   <p className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t("आज", "Today", lang)}</p>
-//                   {hasResult ? (
-//                     <p className="font-mono font-black text-green-600 text-xl md:text-3xl leading-none mt-0.5 animate-resultPop">
-//                       {game.today}
-//                     </p>
-//                   ) : isLive ? (
-//                     <span className="inline-flex items-center gap-0.5 text-[10px] md:text-xs font-bold text-red-500 mt-1">
-//                       <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-live-pulse" />
-//                       {t("रुको", "WAIT", lang)}
-//                     </span>
-//                   ) : (
-//                     <p className="font-mono font-black text-gray-400 text-xl md:text-3xl leading-none mt-0.5">--</p>
-//                   )}
-//                 </div>
-//               </div>
-
-//               {/* Right: Chart */}
-//               <Link
-//                 href={`/chart/${slug}`}
-//                 className="shrink-0 text-[10px] md:text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
-//               >
-//                 {t("चार्ट", "Chart", lang)} &rarr;
-//               </Link>
-//             </div>
-//           );
-//         })}
-//       </div>
-//     </section>
-//   );
-// }
 function GameCardSection({
   title,
   subtitle,
@@ -700,130 +612,10 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
   );
 }
 
-// ─── WhatsApp Contact Section ───
 
-// function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
-//   const phone = "918901302607";
-
-//   return (
-//     <section className="sa opacity-0 translate-y-8">
-//       <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-400">
-//         {/* Header */}
-//         <div className="text-center py-4 px-4 bg-amber-500">
-//           <p className="text-white font-black text-2xl md:text-3xl tracking-wide">
-//             A7 SATTA
-//           </p>
-//           <p className="text-blue-100 font-bold text-sm md:text-base mt-1 italic">
-//             {t("गेम खेलने के लिए संपर्क करें", "Game play karne ke liye contact kare", lang)}
-//           </p>
-//         </div>
-
-//         {/* Online Khaiwal + Game Timing */}
-//         <div className="bg-[#1a1a2e] text-white px-4 md:px-8 py-5">
-//           <div className="text-center mb-4">
-//             <p className="text-amber-400 font-black text-lg md:text-xl">
-//               Online Khaiwal
-//             </p>
-//             <p className="text-gray-400 text-sm font-semibold">
-//               ( Roni bhai Khaiwal )
-//             </p>
-//           </div>
-
-//           <div className="text-center mb-4">
-//             <p className="text-amber-400 font-bold text-sm md:text-base uppercase tracking-wider">
-//               {t("सभी गेम टाइमिंग", "All Game Timing", lang)}
-//             </p>
-//           </div>
-
-//           <div className="space-y-2.5 max-w-sm mx-auto">
-//             {[
-//               { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
-//               { name: t("मणिपुर", "Manipur", lang), time: "2:30" },
-//               { name: t("UP बाज़ार", "UP Bazar", lang), time: "3:30" },
-//               { name: t("पलवल City", "Palwal City", lang), time: "4:30" },
-//               { name: t("मथूरा City", "Mathura City", lang), time: "6:00" },
-//             ].map((game) => (
-//               <div
-//                 key={game.name}
-//                 className="flex items-center justify-between bg-white/10 rounded-xl px-4 py-2.5 border border-white/10"
-//               >
-//                 <span className="font-bold text-sm md:text-base">{game.name}</span>
-//                 <span className="text-amber-400 font-mono font-bold text-sm">
-//                   {game.time} Last time
-//                 </span>
-//               </div>
-//             ))}
-//           </div>
-
-//           <p className="text-center text-gray-400 text-xs md:text-sm mt-4">
-//             {t(
-//               "फोन पे, गूगल पे, पेटीएम स्कैनर माँग लो",
-//               "Phone Pe, Google Pe, Paytm Scanner mang lo",
-//               lang
-//             )}
-//           </p>
-//         </div>
-
-//         {/* Rate + Payment */}
-//         <div className="px-4 md:px-8 py-4 grid grid-cols-2 gap-3 max-w-md mx-auto">
-//           <div className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-center">
-//             <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-//               {t("जोड़ी रेट", "Jodi Rate", lang)}
-//             </p>
-//             <p className="text-blue-600 font-black text-xl mt-1">10 - 960</p>
-//           </div>
-//           <div className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-center">
-//             <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-//               {t("हरूफ रेट", "Haruf Rate", lang)}
-//             </p>
-//             <p className="text-blue-600 font-black text-xl mt-1">100 - 960</p>
-//           </div>
-//         </div>
-
-//         {/* Payment Options */}
-//         <div className="px-4 py-3 text-center">
-//           <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
-//             {t("भुगतान के तरीके", "Payment Options", lang)}
-//           </p>
-//           <p className="text-gray-700 text-sm font-semibold">PAYTM // PHONE PAY // GOOGLE PAY // BANK TRANSFER</p>
-//         </div>
-
-//         {/* Phone */}
-//         <div className="px-4 py-3 text-center">
-//           <a
-//             href={`tel:+${phone}`}
-//             className="inline-block text-blue-600 font-black text-2xl md:text-3xl tracking-widest hover:text-blue-700 transition-colors border-t-2 border-b-2 border-blue-200 py-3 px-6"
-//           >
-//             +{phone}
-//           </a>
-//         </div>
-
-//         {/* WhatsApp CTA */}
-//         <div className="px-4 py-4 text-center">
-//           <p className="text-gray-500 text-sm font-bold mb-3">
-//             {t("गेम खेलने के लिए नीचे क्लिक करें", "Game play karne ke liye niche click kare", lang)}
-//           </p>
-//           <a
-//             href={`https://wa.me/${phone}?text=${encodeURIComponent("A7 SATTA")}`}
-//             target="_blank"
-//             rel="noopener noreferrer"
-//             className="inline-flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-lg shadow-green-500/20 transition-all hover:scale-105"
-//           >
-//             <FaWhatsapp className="w-7 h-7" />
-//             <div className="text-left">
-//               <div className="text-lg font-black leading-tight">WhatsApp Now</div>
-//               <div className="text-xs font-semibold opacity-80">
-//                 {t("तुरंत चैट करने के लिए क्लिक करें", "Click to chat instantly", lang)}
-//               </div>
-//             </div>
-//           </a>
-//         </div>
-//       </div>
-//     </section>
-//   );
-// }
-function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
-  const phone = "918901302607";
+function WhatsAppContactSection({ lang, khaiwal }: any) {
+  const phone = khaiwal?.whatsapp || "918901302607";
+  const name = khaiwal?.name || "Roni bhai Khaiwal";
 
   const games = [
                   { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
@@ -846,7 +638,7 @@ function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
 
           <h2 className="mt-3 text-2xl md:text-4xl font-black text-[#1a1a2e]">
            
-            Roni bhai Khaiwal
+          {name}
           </h2>
         </div>
 
@@ -917,7 +709,7 @@ function WhatsAppContactSection({ lang }: { lang: "hi" | "en" }) {
         {/* Footer Text */}
         <div className="text-center px-4 pt-5">
           <p className="font-black text-xl md:text-2xl text-[#1a1a2e]">
-            😊😊 Roni bhai Khaiwal 😊😊
+            😊😊{name} 😊😊
           </p>
 
           <p className="mt-2 text-sm md:text-base font-bold text-gray-700">
