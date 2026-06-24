@@ -508,6 +508,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 const CUSTOM_GAMES = [
   { key: "kohlapur", label: "कोहलापुर (Kohlapur)", time: "1:30 PM" },
   { key: "manipur", label: "मणिपुर (Manipur)", time: "2:30 PM" },
+  { key: "up-bazar", label: "UP बाज़ार (UP Bazar)", time: "3:30 PM" },
   { key: "palwal-city", label: "पलवल City (Palwal City)", time: "4:30 PM" },
   { key: "mathura-city", label: "मथूरा City (Mathura City)", time: "6:50 PM" },
 ];

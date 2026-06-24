@@ -28,7 +28,7 @@ export default function GameChartPage({
   const [currentDate, setCurrentDate] = useState(new Date(now.getFullYear(), now.getMonth()));
 
   // Custom games use a separate API
-  const customGameKeys = ["kohlapur", "manipur", "palwal-city", "mathura-city"];
+  const customGameKeys = ["kohlapur", "manipur", "up-bazar", "palwal-city", "mathura-city"];
   const isCustomGame = customGameKeys.includes(gameCode);
 
   const fetchChart = async (date: Date) => {

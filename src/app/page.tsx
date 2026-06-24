@@ -167,7 +167,7 @@ export default function HomePage() {
   const topGameDefs = [
     { name: "KOHLAPUR", time: "1:30 PM", seedOffset: 1, customKey: "kohlapur", aliases: [] as string[] },
     { name: "MANIPUR", time: "2:30 PM", seedOffset: 3, customKey: "manipur", aliases: [] },
-    { name: "UP BAZAR", time: "3:30 PM", seedOffset: 5, customKey: "", aliases: ["upbazar"] },
+    { name: "UP BAZAR", time: "3:30 PM", seedOffset: 5, customKey: "up-bazar", aliases: ["upbazar"] },
     { name: "PALWAL CITY", time: "4:30 PM", seedOffset: 7, customKey: "palwal-city", aliases: [] },
     { name: "FRIDABAD", time: "5:45 PM", seedOffset: 11, customKey: "", aliases: ["faridabad", "frbd"] },
     { name: "MATHURA CITY", time: "6:50 PM", seedOffset: 9, customKey: "mathura-city", aliases: [] },
@@ -180,22 +180,22 @@ export default function HomePage() {
   const topGames: SK24Game[] = topGameDefs.map(def => {
     const norm = def.name.toLowerCase().replace(/\s+/g, "");
     const allNames = [norm, ...def.aliases];
-    // Check scraped data first (match by name or aliases)
+    // Match scraped data (by name or aliases) for fallback values
     const existing = allApiGames.find(g => {
       const gn = g.name.toLowerCase().replace(/\s+/g, "");
       return allNames.some(n => n === gn);
     });
-    if (existing) {
-      return { name: def.name, time: def.time, yesterday: existing.yesterday, today: existing.today };
-    }
-    // Check custom games from Firebase
+    // Admin custom value (Firebase) takes priority when set for this game
     if (def.customKey && customGames[def.customKey]) {
       return {
         name: def.name,
         time: def.time,
-        yesterday: String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
+        yesterday: existing?.yesterday ?? String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
         today: customGames[def.customKey],
       };
+    }
+    if (existing) {
+      return { name: def.name, time: def.time, yesterday: existing.yesterday, today: existing.today };
     }
     // No data available - show XX
     return {

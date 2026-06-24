@@ -7,7 +7,7 @@ const ADMIN_EMAIL = "kapil123@gmail.com";
 const ADMIN_PASSWORD = "Kapil@1997";
 
 // Known custom game keys (used to flatten the per-date map into a result list)
-const GAME_KEYS = ["kohlapur", "manipur", "palwal-city", "mathura-city"];
+const GAME_KEYS = ["kohlapur", "manipur", "up-bazar", "palwal-city", "mathura-city"];
 
 function isAuthed(email?: string, password?: string) {
   return email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
@@ -74,6 +74,7 @@ export async function GET(req: NextRequest) {
       games: {
         kohlapur: data.kohlapur || "",
         manipur: data.manipur || "",
+        "up-bazar": data["up-bazar"] || "",
         "palwal-city": data["palwal-city"] || "",
         "mathura-city": data["mathura-city"] || "",
       },
