@@ -206,9 +206,16 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
       return allNames.some(n => n === gn);
     });
     if (existing) {
-      return { name: name.toUpperCase(), time: existing.time || "", yesterday: existing.yesterday, today: existing.today };
+      const time = existing.time || "";
+      return {
+        name: name.toUpperCase(),
+        time,
+        yesterday: existing.yesterday,
+        // Only show today's result once the game's scheduled time has passed.
+        today: gateTodayByTime(existing.today, time),
+      };
     }
-    return { name: name.toUpperCase(), time: "", yesterday: "--", today: "--" };
+    return { name: name.toUpperCase(), time: "", yesterday: "XX", today: "XX" };
   });
 
   // Filter remaining games: exclude top 9 games and 3rd section games from other sections
@@ -403,6 +410,41 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 }
 
 
+// Parse a game time like "01:39 PM" / "9:20 PM" into minutes since midnight.
+// Returns null if the string is empty or not a recognizable time.
+function parseGameTimeToMinutes(time: string): number | null {
+  const m = time?.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ap = m[3].toUpperCase();
+  if (ap === "PM" && h !== 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+// Current wall-clock time in IST as minutes since midnight.
+function istNowMinutes(): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const h = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+  const min = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+  return (h % 24) * 60 + min;
+}
+
+// A game's "today" result should only show once its scheduled IST time has passed.
+// Before that the result hasn't been declared yet, so show "XX".
+// If the time can't be parsed we don't gate (return the value as-is).
+function gateTodayByTime(today: string, time: string): string {
+  const resultMin = parseGameTimeToMinutes(time);
+  if (resultMin === null) return today;
+  return istNowMinutes() < resultMin ? "XX" : today;
+}
+
 // Ordinal suffix for a day number, e.g. 1 -> "st", 27 -> "th".
 function ordinalSuffix(n: number): string {
   const v = n % 100;
@@ -530,7 +572,7 @@ function GameCardSection({
                   {/* Yesterday */}
                   <td className="border border-black px-3 py-1.5 text-center">
                     <span className="font-mono font-black text-2xl md:text-3xl text-gray-800">
-                      {game.yesterday || "--"}
+                      {game.yesterday || "XX"}
                     </span>
                   </td>
 
@@ -546,7 +588,7 @@ function GameCardSection({
                       </span>
                     ) : (
                       <span className="font-mono font-black text-2xl md:text-3xl text-gray-400">
-                        --
+                        XX
                       </span>
                     )}
                   </td>
@@ -603,12 +645,12 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
                           ci === 0 ? "text-red-500" : "text-gray-800"
                         }`}
                       >
-                        {cell || "--"}
+                        {cell || "XX"}
                       </td>
                     ))}
                     {Array.from({ length: Math.max(0, table.headers.length - row.length) }).map((_, fi) => (
                       <td key={`fill-${fi}`} className="py-1.5 px-1 md:px-3 font-mono font-bold border border-gray-200 text-gray-400">
-                        --
+                        XX
                       </td>
                     ))}
                   </tr>
@@ -909,7 +951,7 @@ function MonthlyChartSection({
                         key={g.key}
                         className="py-1.5 px-1.5 md:px-3 font-mono font-bold border border-gray-200 text-gray-800"
                       >
-                        {row[g.key] || "--"}
+                        {row[g.key] || "XX"}
                       </td>
                     ))}
                   </tr>
