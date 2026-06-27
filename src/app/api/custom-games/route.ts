@@ -146,23 +146,32 @@ const docRef = adminDb.collection(COLLECTION).doc(targetDate);
 const existing = await docRef.get();
 const existingData = existing.exists ? existing.data() || {} : {};
 
-// ✅ FIXED LOGIC (IMPORTANT)
-const finalKhaiwal =
-  khaiwal ||
-  (khaiwalName && whatsapp
-    ? { name: khaiwalName, whatsapp }
-    : existingData.khaiwal || null);
+// ✅ Khaiwal can be saved on its own (name/whatsapp) or together with games.
+// Accept a partial update — keep any field the admin didn't send.
+const hasKhaiwalInput =
+  khaiwal != null || khaiwalName != null || whatsapp != null;
+
+const finalKhaiwal = !hasKhaiwalInput
+  ? existingData.khaiwal || null
+  : khaiwal || {
+      name: khaiwalName ?? existingData.khaiwal?.name ?? "",
+      whatsapp: whatsapp ?? existingData.khaiwal?.whatsapp ?? "",
+    };
 
 const updatedData = {
   ...existingData,
-  ...games,
+  ...(games || {}),
   khaiwal: finalKhaiwal,
   updatedAt: Date.now(),
 };
 
 await docRef.set(updatedData);
 
-return Response.json({ success: true, games: updatedData });
+return Response.json({
+  success: true,
+  games: updatedData,
+  khaiwal: finalKhaiwal,
+});
   } catch (error) {
     return Response.json(
       { success: false, error: (error as Error).message },

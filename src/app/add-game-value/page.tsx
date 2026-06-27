@@ -543,6 +543,11 @@ export default function AddGameValuePage() {
   // ✅ NEW FIELDS (KHAIWAL)
   const [khaiwalName, setKhaiwalName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [savedKhaiwal, setSavedKhaiwal] = useState<{
+    name: string;
+    whatsapp: string;
+  } | null>(null);
+  const [savingKhaiwal, setSavingKhaiwal] = useState(false);
 
   const [entries, setEntries] = useState<Entry[]>([]);
 
@@ -555,6 +560,7 @@ export default function AddGameValuePage() {
         setValues(data.games || {});
         setKhaiwalName(data.khaiwal?.name || "");
         setWhatsapp(data.khaiwal?.whatsapp || "");
+        setSavedKhaiwal(data.khaiwal || null);
       }
     } catch {}
   }, [date]);
@@ -618,6 +624,41 @@ export default function AddGameValuePage() {
     }
   };
 
+  // ✅ Save ONLY Khaiwal details (name + whatsapp) — separate from game results
+  const handleSaveKhaiwal = async () => {
+    if (!khaiwalName.trim() && !whatsapp.trim()) {
+      alert("Please enter Khaiwal Name or WhatsApp Number");
+      return;
+    }
+
+    setSavingKhaiwal(true);
+    try {
+      const res = await fetch("/api/custom-games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          date,
+          khaiwalName: khaiwalName.trim(),
+          whatsapp: whatsapp.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSavedKhaiwal(data.khaiwal || null);
+        alert("Khaiwal Details Saved!");
+      } else {
+        alert("Error saving Khaiwal");
+      }
+    } catch {
+      alert("Network error");
+    } finally {
+      setSavingKhaiwal(false);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -677,6 +718,24 @@ export default function AddGameValuePage() {
             className="border p-2 w-full rounded-xl"
             maxLength={10}
           />
+
+          {/* ✅ SEPARATE SAVE BUTTON FOR KHAIWAL */}
+          <button
+            onClick={handleSaveKhaiwal}
+            disabled={savingKhaiwal}
+            className="bg-green-600 disabled:opacity-60 text-white w-full py-2.5 rounded-xl mt-3 font-semibold"
+          >
+            {savingKhaiwal ? "Saving..." : "💾 Save Khaiwal Details"}
+          </button>
+
+          {/* ✅ SHOW CURRENTLY SAVED KHAIWAL VALUE */}
+          {savedKhaiwal && (savedKhaiwal.name || savedKhaiwal.whatsapp) && (
+            <div className="mt-3 bg-white border border-green-200 rounded-xl p-3 text-sm">
+              <p className="font-bold text-green-700 mb-1">Saved Khaiwal</p>
+              <p>👤 {savedKhaiwal.name || "-"}</p>
+              <p>📱 {savedKhaiwal.whatsapp || "-"}</p>
+            </div>
+          )}
         </div>
 
         {/* ===== GAME INPUTS ===== */}
