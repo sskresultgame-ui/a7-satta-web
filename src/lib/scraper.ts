@@ -89,7 +89,9 @@ export async function scrapeGameChart(slug: string, month?: string, year?: strin
         } catch { /* skip */ }
       }
       results.push({
-        date: dateTitle || dateNum,
+        // Store the day-of-month only; the full date title was leaking the
+        // year (e.g. "2026") into the UI, which showed "26" for every row.
+        date: dateNum || dateTitle,
         day: dayName,
         result: gameColIndex >= 0 ? (numbers[gameColIndex] || "XX") : (numbers[numbers.length - 1] || "XX"),
       });

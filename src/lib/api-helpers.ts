@@ -32,7 +32,7 @@ export async function getHomepageData(): Promise<HomepageData | null> {
 
   const firebaseData = await getHomepageFromFirestore();
   if (firebaseData) {
-    memSet("homepage", firebaseData, 30);
+    memSet("homepage", firebaseData, 10);
     return firebaseData;
   }
 
@@ -42,9 +42,9 @@ export async function getHomepageData(): Promise<HomepageData | null> {
 // ─── Cache Headers ───
 
 export const EDGE_CACHE_HEADERS = {
-  "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
-  "CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
-  "Vercel-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+  "Cache-Control": "public, s-maxage=10, stale-while-revalidate=20",
+  "CDN-Cache-Control": "public, s-maxage=10, stale-while-revalidate=20",
+  "Vercel-CDN-Cache-Control": "public, s-maxage=10, stale-while-revalidate=20",
 } as const;
 
 export const CHART_CACHE_HEADERS = {

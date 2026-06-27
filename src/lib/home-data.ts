@@ -5,6 +5,7 @@ import {
   getSK24ChartsFromFirestore,
 } from "./firebase-cache";
 import { adminDb } from "./firebase-admin";
+import { getISTDateString } from "./utils";
 import type {
   GameResult,
   ChartRow,
@@ -21,6 +22,7 @@ export interface HomeData {
   monthlyChart: ChartRow[];
   monthlyChartMeta: { month: string; year: string };
   customGames: Record<string, string>;
+  customGamesYesterday: Record<string, string>;
   khaiwal: { name: string; whatsapp: string } | null;
 }
 
@@ -53,14 +55,17 @@ export async function getHomeData(): Promise<HomeData> {
   const now = new Date();
   const monthName = now.toLocaleString("en-US", { month: "long" }).toLowerCase();
   const year = now.getFullYear().toString();
-  const today = now.toISOString().slice(0, 10);
+  // Use IST so results roll over at midnight IST, not midnight UTC.
+  const today = getISTDateString(0);
+  const yesterday = getISTDateString(-1);
 
-  const [homepage, sk24, sk24chart, chart, custom] = await Promise.all([
+  const [homepage, sk24, sk24chart, chart, custom, customPrev] = await Promise.all([
     getHomepageFromFirestore(),
     getSK24GamesFromFirestore(),
     getSK24ChartsFromFirestore(),
     getMonthlyChartFromFirestore(monthName, year),
     getCustomGamesForDate(today),
+    getCustomGamesForDate(yesterday),
   ]);
 
   return {
@@ -75,6 +80,7 @@ export async function getHomeData(): Promise<HomeData> {
       year: chart?.year || year,
     },
     customGames: custom.games || {},
+    customGamesYesterday: customPrev.games || {},
     khaiwal: custom.khaiwal || null,
   };
 }

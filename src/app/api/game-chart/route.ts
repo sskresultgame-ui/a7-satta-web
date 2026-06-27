@@ -4,15 +4,30 @@ import { getGameChartFromFirestore } from "@/lib/firebase-cache";
 import type { GameChartData } from "@/lib/types";
 import { memGet, memSet, CHART_CACHE_HEADERS } from "@/lib/api-helpers";
 
+// Homepage uses Hinglish display spellings, but Firebase + the source site
+// store charts under canonical slugs. Normalize before any lookup so the
+// "Chart →" links for these games resolve correctly.
+const SLUG_ALIASES: Record<string, string> = {
+  fridabad: "faridabad",
+  frbd: "faridabad",
+  gaziabad: "ghaziabad",
+  gzbd: "ghaziabad",
+  disawar: "desawar",
+  desawer: "desawar",
+  dswr: "desawar",
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const slug = searchParams.get("slug");
+  const rawSlug = searchParams.get("slug");
   const month = searchParams.get("month") || undefined;
   const year = searchParams.get("year") || undefined;
 
-  if (!slug) {
+  if (!rawSlug) {
     return Response.json({ success: false, error: "slug is required" }, { status: 400 });
   }
+
+  const slug = SLUG_ALIASES[rawSlug.toLowerCase()] || rawSlug.toLowerCase();
 
   const cacheKey = `game:${slug}:${month || "current"}:${year || "current"}`;
 

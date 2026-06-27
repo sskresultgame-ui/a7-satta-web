@@ -10,6 +10,16 @@ interface ChartRow {
   result: string;
 }
 
+// `date` may be a plain day number ("26") or a full date string
+// (e.g. "2026-06-01"). Always show the day-of-month, never the year.
+function getDayOfMonth(date: string): string {
+  const trimmed = (date || "").trim();
+  if (/^\d{1,2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) return String(parsed.getDate());
+  return trimmed.slice(-2);
+}
+
 export default function GameChartPage({
   params,
 }: {
@@ -169,7 +179,7 @@ export default function GameChartPage({
                   {/* Date */}
                   <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                     <span className="font-black text-gray-800 text-lg md:text-xl">
-                      {row.date.length > 2 ? row.date.slice(-2) : row.date}
+                      {getDayOfMonth(row.date)}
                     </span>
                   </div>
 

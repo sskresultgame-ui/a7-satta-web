@@ -97,6 +97,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const [monthlyChart] = useState<ChartRow[]>(initialData.monthlyChart);
   const [monthlyChartMeta] = useState<{ month: string; year: string }>(initialData.monthlyChartMeta);
   const [customGames] = useState<Record<string, string>>(initialData.customGames);
+  const [customGamesYesterday] = useState<Record<string, string>>(initialData.customGamesYesterday);
   const [loading] = useState(false);
   const [khaiwal] = useState<any>(initialData.khaiwal);
 
@@ -122,7 +123,13 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     const x = Math.sin(seed) * 10000;
     return Math.floor((x - Math.floor(x)) * 100);
   };
-  const daySeed = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  // IST date so the seeded fallback rolls over at midnight IST (same as results)
+  const daySeed = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()).replace(/-/g, "");
   const ds = parseInt(daySeed, 10);
 
   // ─── 1ST SECTION: Fixed 9 games ───
@@ -147,23 +154,32 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
       const gn = g.name.toLowerCase().replace(/\s+/g, "");
       return allNames.some(n => n === gn);
     });
-    // Admin custom value (Firebase) takes priority when set for this game
+    // Yesterday column: prefer the admin value saved for yesterday's date
+    // (so today's declared result rolls into the Yesterday column at midnight IST),
+    // then fall back to scraped data, then a stable seeded value.
+    const seedFallback = String(seedRand(ds + def.seedOffset)).padStart(2, "0");
+    const yesterdayVal =
+      (def.customKey && customGamesYesterday[def.customKey]) ||
+      existing?.yesterday ||
+      seedFallback;
+
+    // Admin custom value (Firebase) takes priority when set for today
     if (def.customKey && customGames[def.customKey]) {
       return {
         name: def.name,
         time: def.time,
-        yesterday: existing?.yesterday ?? String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
+        yesterday: yesterdayVal,
         today: customGames[def.customKey],
       };
     }
     if (existing) {
-      return { name: def.name, time: def.time, yesterday: existing.yesterday, today: existing.today };
+      return { name: def.name, time: def.time, yesterday: yesterdayVal, today: existing.today };
     }
     // No data available - show XX
     return {
       name: def.name,
       time: def.time,
-      yesterday: String(seedRand(ds + def.seedOffset)).padStart(2, "0"),
+      yesterday: yesterdayVal,
       today: "XX",
     };
   });
@@ -387,6 +403,32 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
 }
 
 
+// Ordinal suffix for a day number, e.g. 1 -> "st", 27 -> "th".
+function ordinalSuffix(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return "th";
+  switch (n % 10) {
+    case 1: return "st";
+    case 2: return "nd";
+    case 3: return "rd";
+    default: return "th";
+  }
+}
+
+// IST day label like "Sat. 27th". offsetDays shifts by whole days (-1 = yesterday).
+function istDayLabel(offsetDays = 0): string {
+  const d = new Date();
+  if (offsetDays) d.setUTCDate(d.getUTCDate() + offsetDays);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "numeric",
+  }).formatToParts(d);
+  const weekday = parts.find((p) => p.type === "weekday")?.value || "";
+  const day = parseInt(parts.find((p) => p.type === "day")?.value || "0", 10);
+  return `${weekday}. ${day}${ordinalSuffix(day)}`;
+}
+
 function GameCardSection({
   title,
   subtitle,
@@ -439,12 +481,18 @@ function GameCardSection({
                 Game
               </th>
 
-              <th className="border border-black px-3 py-3 text-center">
-                Yesterday
+              <th className="border border-black px-3 py-2 text-center">
+                <div>Yesterday</div>
+                <div className="text-[11px] md:text-xs font-semibold text-green-300 mt-0.5">
+                  {istDayLabel(-1)}
+                </div>
               </th>
 
-              <th className="border border-black px-3 py-3 text-center">
-                Today
+              <th className="border border-black px-3 py-2 text-center">
+                <div>Today</div>
+                <div className="text-[11px] md:text-xs font-semibold text-green-300 mt-0.5">
+                  {istDayLabel(0)}
+                </div>
               </th>
             </tr>
           </thead>

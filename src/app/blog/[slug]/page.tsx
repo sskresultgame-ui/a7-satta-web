@@ -40,6 +40,35 @@ export async function generateMetadata({
   };
 }
 
+// Phrases that should link out to the main site, longest first so a longer
+// phrase is matched before a shorter one it might contain.
+const SITE_URL = "https://www.a7satta.co/";
+const LINK_PHRASES = ["Satta King Result", "A7Satta.co"];
+const LINK_REGEX = new RegExp(
+  `(${LINK_PHRASES.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+  "gi"
+);
+
+// Turn the matched phrases inside a plain string into anchor links.
+function linkify(text: string) {
+  return text.split(LINK_REGEX).map((part, i) => {
+    if (LINK_PHRASES.some((p) => p.toLowerCase() === part.toLowerCase())) {
+      return (
+        <a
+          key={i}
+          href={SITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-600 font-semibold hover:text-amber-700 hover:underline"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 function renderBlock(block: Block, index: number) {
   switch (block.type) {
     case "h2":
@@ -48,7 +77,7 @@ function renderBlock(block: Block, index: number) {
           key={index}
           className="text-xl md:text-2xl font-bold text-gray-900 mt-8 mb-3 scroll-mt-20"
         >
-          {block.text}
+          {linkify(block.text)}
         </h2>
       );
     case "p":
@@ -57,7 +86,7 @@ function renderBlock(block: Block, index: number) {
           key={index}
           className="text-sm md:text-base text-gray-700 leading-relaxed mb-4"
         >
-          {block.text}
+          {linkify(block.text)}
         </p>
       );
     case "ul":
@@ -66,7 +95,7 @@ function renderBlock(block: Block, index: number) {
           {block.items.map((item, i) => (
             <li key={i} className="flex items-start gap-2 text-sm md:text-base text-gray-700">
               <span className="text-amber-500 font-bold mt-0.5 shrink-0">&#10003;</span>
-              <span>{item}</span>
+              <span>{linkify(item)}</span>
             </li>
           ))}
         </ul>
@@ -80,7 +109,7 @@ function renderBlock(block: Block, index: number) {
           <p className="text-xs font-bold uppercase tracking-wide text-red-600 mb-1">
             Myth
           </p>
-          <p className="text-sm md:text-base text-red-800">{block.text}</p>
+          <p className="text-sm md:text-base text-red-800">{linkify(block.text)}</p>
         </div>
       );
     case "reality":
@@ -92,7 +121,7 @@ function renderBlock(block: Block, index: number) {
           <p className="text-xs font-bold uppercase tracking-wide text-green-700 mb-1">
             Reality
           </p>
-          <p className="text-sm md:text-base text-green-800">{block.text}</p>
+          <p className="text-sm md:text-base text-green-800">{linkify(block.text)}</p>
         </div>
       );
     default:
