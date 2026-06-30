@@ -160,8 +160,8 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     const seedFallback = String(seedRand(ds + def.seedOffset)).padStart(2, "0");
     const yesterdayVal =
       (def.customKey && customGamesYesterday[def.customKey]) ||
-      existing?.yesterday ||
-      seedFallback;
+      existing?.yesterday || "XX"
+      // seedFallback;
 
     // Admin custom value (Firebase) takes priority when set for today
     if (def.customKey && customGames[def.customKey]) {
