@@ -666,8 +666,8 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
 
 
 function WhatsAppContactSection({ lang, khaiwal }: any) {
-  const phone = khaiwal?.whatsapp || "918901302607";
-  const name = khaiwal?.name || "Roni bhai Khaiwal";
+  const phone = khaiwal?.whatsapp || "7015670866";
+  const name = khaiwal?.name || "Rizwan bhai khaiwal";
 
   const games = [
                   { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
@@ -754,7 +754,7 @@ function WhatsAppContactSection({ lang, khaiwal }: any) {
             href={`tel:+${phone}`}
             className="inline-block text-3xl md:text-4xl font-black text-blue-700 border-b-4 border-blue-700"
           >
-            +{phone}
+            +91{phone}
           </a>
         </div>
 
