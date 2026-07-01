@@ -145,7 +145,13 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     { name: "DISAWAR", time: "1:30 AM", seedOffset: 17, customKey: "", aliases: ["desawar", "desawer", "dswr"] },
   ];
 
-  const allApiGames = [...liveResults, ...nextResults, ...restResults, ...sk24Games];
+  // const allApiGames = [...liveResults, ...nextResults, ...restResults, ...sk24Games];
+  const allApiGames = [
+    ...sk24Games,
+    ...liveResults,
+    ...nextResults,
+    ...restResults,
+  ];
   const topGames: SK24Game[] = topGameDefs.map(def => {
     const norm = def.name.toLowerCase().replace(/\s+/g, "");
     const allNames = [norm, ...def.aliases];
