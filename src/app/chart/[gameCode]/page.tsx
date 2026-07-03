@@ -20,6 +20,19 @@ function getDayOfMonth(date: string): string {
   return trimmed.slice(-2);
 }
 
+// Homepage links use display spellings (fridabad, gaziabad, disawar) but the
+// live/next/rest results use canonical names (faridabad, ghaziabad, desawar).
+// Match a chart's gameCode against every known spelling so the result time
+// resolves from the same data the homepage shows.
+const NAME_ALIASES: Record<string, string[]> = {
+  fridabad: ["fridabad", "faridabad", "frbd"],
+  faridabad: ["faridabad", "fridabad", "frbd"],
+  gaziabad: ["gaziabad", "ghaziabad", "gzbd"],
+  ghaziabad: ["ghaziabad", "gaziabad", "gzbd"],
+  disawar: ["disawar", "desawar", "desawer", "dswr"],
+  desawar: ["desawar", "disawar", "desawer", "dswr"],
+};
+
 export default function GameChartPage({
   params,
 }: {
@@ -75,6 +88,8 @@ export default function GameChartPage({
   }, [gameCode, currentDate]);
 
   useEffect(() => {
+    // All accepted name spellings for this game (used to match live/next/rest).
+    const nameCandidates = NAME_ALIASES[gameCode.toLowerCase()] || [gameCode.toLowerCase()];
     const findTime = async () => {
       try {
         const endpoints = ["/api/live-results", "/api/next-results", "/api/rest-results"];
@@ -83,7 +98,7 @@ export default function GameChartPage({
           const data = await res.json();
           if (data.success) {
             const found = data.results?.find(
-              (g: { name: string }) => g.name.toLowerCase().replace(/\s+/g, "-") === gameCode
+              (g: { name: string }) => nameCandidates.includes(g.name.toLowerCase().replace(/\s+/g, "-"))
             );
             if (found) {
               setResultTime(found.time);
@@ -95,7 +110,7 @@ export default function GameChartPage({
         const sk24Data = await sk24Res.json();
         if (sk24Data.success) {
           const found = sk24Data.games?.find(
-            (g: { name: string }) => g.name.toLowerCase().replace(/\s+/g, "-") === gameCode
+            (g: { name: string }) => nameCandidates.includes(g.name.toLowerCase().replace(/\s+/g, "-"))
           );
           if (found) setResultTime(found.time);
         }

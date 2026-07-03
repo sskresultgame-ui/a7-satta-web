@@ -118,20 +118,6 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   ]);
   const isHidden = (name: string) => hiddenGames.has(name.toLowerCase().trim());
 
-  // Seeded random for stable results per day
-  const seedRand = (seed: number) => {
-    const x = Math.sin(seed) * 10000;
-    return Math.floor((x - Math.floor(x)) * 100);
-  };
-  // IST date so the seeded fallback rolls over at midnight IST (same as results)
-  const daySeed = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date()).replace(/-/g, "");
-  const ds = parseInt(daySeed, 10);
-
   // ─── 1ST SECTION: Fixed 9 games ───
   const topGameDefs = [
     { name: "KOHLAPUR", time: "1:30 PM", seedOffset: 1, customKey: "kohlapur", aliases: [] as string[] },
@@ -160,32 +146,38 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
       const gn = g.name.toLowerCase().replace(/\s+/g, "");
       return allNames.some(n => n === gn);
     });
-    // Yesterday column: prefer the admin value saved for yesterday's date
-    // (so today's declared result rolls into the Yesterday column at midnight IST),
-    // then fall back to scraped data, then a stable seeded value.
-    const seedFallback = String(seedRand(ds + def.seedOffset)).padStart(2, "0");
-    const yesterdayVal =
-      (def.customKey && customGamesYesterday[def.customKey]) ||
-      existing?.yesterday || "XX"
-      // seedFallback;
 
-    // Admin custom value (Firebase) takes priority when set for today
+    // Admin value saved for yesterday's date takes priority for the Yesterday
+    // column (so a declared result rolls into Yesterday at midnight IST).
+    const adminYesterday = def.customKey ? customGamesYesterday[def.customKey] : "";
+
+    // Admin custom value (Firebase) takes priority when set for today.
     if (def.customKey && customGames[def.customKey]) {
       return {
         name: def.name,
         time: def.time,
-        yesterday: yesterdayVal,
+        yesterday: adminYesterday || existing?.yesterday || "XX",
         today: customGames[def.customKey],
       };
     }
+
     if (existing) {
-      return { name: def.name, time: def.time, yesterday: yesterdayVal, today: existing.today };
+      // Gate the today value by the game's scheduled time and roll the latest
+      // scraped result into Yesterday until today's slot is declared.
+      const rolled = rollByTime(existing.yesterday, existing.today, def.time);
+      return {
+        name: def.name,
+        time: def.time,
+        yesterday: adminYesterday || rolled.yesterday,
+        today: rolled.today,
+      };
     }
+
     // No data available - show XX
     return {
       name: def.name,
       time: def.time,
-      yesterday: yesterdayVal,
+      yesterday: adminYesterday || "XX",
       today: "XX",
     };
   });
@@ -213,12 +205,14 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     });
     if (existing) {
       const time = existing.time || "";
+      // Gate today by the game's scheduled time and roll the latest scraped
+      // result into Yesterday until today's slot is declared (same as section 1).
+      const rolled = rollByTime(existing.yesterday, existing.today, time);
       return {
         name: name.toUpperCase(),
         time,
-        yesterday: existing.yesterday,
-        // Only show today's result once the game's scheduled time has passed.
-        today: gateTodayByTime(existing.today, time),
+        yesterday: rolled.yesterday,
+        today: rolled.today,
       };
     }
     return { name: name.toUpperCase(), time: "", yesterday: "XX", today: "XX" };
@@ -442,13 +436,25 @@ function istNowMinutes(): number {
   return (h % 24) * 60 + min;
 }
 
-// A game's "today" result should only show once its scheduled IST time has passed.
-// Before that the result hasn't been declared yet, so show "XX".
-// If the time can't be parsed we don't gate (return the value as-is).
-function gateTodayByTime(today: string, time: string): string {
+// Given a game's latest scraped {yesterday, today} values and its scheduled IST
+// time, decide what to show in each column. Before the time passes today, the
+// game's "today" slot has not been declared yet — so the latest scraped result
+// is really yesterday's. Roll it into the Yesterday column and show XX for Today.
+// Once the time has passed, show the freshly declared today value as-is.
+function rollByTime(
+  existingYesterday: string,
+  existingToday: string,
+  time: string
+): { yesterday: string; today: string } {
   const resultMin = parseGameTimeToMinutes(time);
-  if (resultMin === null) return today;
-  return istNowMinutes() < resultMin ? "XX" : today;
+  const declaredToday = resultMin === null || istNowMinutes() >= resultMin;
+  if (declaredToday) {
+    return { yesterday: existingYesterday || "XX", today: existingToday };
+  }
+  return {
+    yesterday: existingToday || existingYesterday || "XX",
+    today: "XX",
+  };
 }
 
 // Ordinal suffix for a day number, e.g. 1 -> "st", 27 -> "th".

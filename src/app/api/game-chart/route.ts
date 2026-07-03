@@ -37,31 +37,31 @@ export async function GET(req: NextRequest) {
     return Response.json({ success: true, ...cached }, { headers: CHART_CACHE_HEADERS });
   }
 
-  // 2. Firebase
+  // 2. Live scrape — authoritative source. The source site always serves the
+  // full, current month's chart, so it stays in sync with the homepage's
+  // live/next/rest results. (The Firebase game-chart cache is unmaintained and
+  // can be stale/incomplete, so it is only used as a fallback below.)
+  try {
+    let result = await scrapeGameChart(slug, month, year);
+    if (!result) {
+      result = await scrapeSK24GameChart(slug, month, year);
+    }
+    if (result && result.results?.length) {
+      const chartData: GameChartData = { ...result, scrapedAt: Date.now() };
+      memSet(cacheKey, chartData, 300);
+      return Response.json({ success: true, ...chartData }, { headers: CHART_CACHE_HEADERS });
+    }
+  } catch (error) {
+    // Scrape failed (network/parse) — fall through to the Firebase cache.
+    console.error("[game-chart] scrape failed:", (error as Error).message);
+  }
+
+  // 3. Firebase fallback (only when the live scrape returns nothing).
   const firebaseData = await getGameChartFromFirestore(slug, month, year);
   if (firebaseData) {
     memSet(cacheKey, firebaseData, 300);
     return Response.json({ success: true, ...firebaseData }, { headers: CHART_CACHE_HEADERS });
   }
 
-  // 3. Scrape fallback (for games not yet in Firebase)
-  try {
-    let result = await scrapeGameChart(slug, month, year);
-    if (!result) {
-      result = await scrapeSK24GameChart(slug, month, year);
-    }
-    if (!result) {
-      return Response.json({ success: false, error: "Game not found" }, { status: 404 });
-    }
-
-    const chartData: GameChartData = { ...result, scrapedAt: Date.now() };
-    memSet(cacheKey, chartData, 300);
-
-    return Response.json({ success: true, ...result }, { headers: CHART_CACHE_HEADERS });
-  } catch (error) {
-    return Response.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  return Response.json({ success: false, error: "Game not found" }, { status: 404 });
 }
