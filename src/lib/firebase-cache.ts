@@ -54,6 +54,25 @@ export async function getMonthlyChartFromFirestore(
 
 // ─── Game Chart Data ───
 
+// Charts are scraped by whichever site hits a Firebase miss first, then written
+// here so both sites read from the shared cache instead of re-scraping the source.
+export async function saveGameChartToFirestore(
+  slug: string,
+  month: string | undefined,
+  year: string | undefined,
+  data: GameChartData
+): Promise<void> {
+  try {
+    const docId = `game_${slug}_${(month || "current").toLowerCase()}_${year || "current"}`;
+    await adminDb.collection(COLLECTION).doc(docId).set({
+      ...data,
+      updatedAt: Date.now(),
+    });
+  } catch (err) {
+    console.error("[firebase-cache] Failed to save game chart:", (err as Error).message);
+  }
+}
+
 export async function getGameChartFromFirestore(
   slug: string,
   month: string | undefined,

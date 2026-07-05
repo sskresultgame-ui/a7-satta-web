@@ -89,20 +89,51 @@ function CardSkeleton() {
 export default function HomeClient({ initialData }: { initialData: HomeData }) {
   // ✅ Data is fetched on the server and passed in as props — no client-side
   // fetch waterfall, so everything is present on first paint.
-  const [liveResults] = useState<GameResult[]>(initialData.liveResults);
-  const [nextResults] = useState<GameResult[]>(initialData.nextResults);
-  const [restResults] = useState<GameResult[]>(initialData.restResults);
-  const [sk24Games] = useState<SK24Game[]>(initialData.sk24Games);
+  const [liveResults, setLiveResults] = useState<GameResult[]>(initialData.liveResults);
+  const [nextResults, setNextResults] = useState<GameResult[]>(initialData.nextResults);
+  const [restResults, setRestResults] = useState<GameResult[]>(initialData.restResults);
+  const [sk24Games, setSk24Games] = useState<SK24Game[]>(initialData.sk24Games);
   const [sk24Charts] = useState<SK24ChartTable[]>(initialData.sk24Charts);
   const [monthlyChart] = useState<ChartRow[]>(initialData.monthlyChart);
   const [monthlyChartMeta] = useState<{ month: string; year: string }>(initialData.monthlyChartMeta);
-  const [customGames] = useState<Record<string, string>>(initialData.customGames);
-  const [customGamesYesterday] = useState<Record<string, string>>(initialData.customGamesYesterday);
+  const [customGames, setCustomGames] = useState<Record<string, string>>(initialData.customGames);
+  const [customGamesYesterday, setCustomGamesYesterday] = useState<Record<string, string>>(initialData.customGamesYesterday);
   const [loading] = useState(false);
   const [khaiwal] = useState<any>(initialData.khaiwal);
 
   const containerRef = useScrollAnimation([loading]);
   const { lang } = useLanguage();
+
+  // ─── Live refresh: poll the board every 30s and update in place (no reload). ───
+  // Keeps results fresh without a full page navigation. The /api/home response is
+  // CDN-cached + memoized for 30s, so this stays inside Firebase's free tier even
+  // with many concurrent visitors.
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      // Don't poll while the tab is in the background — saves needless load.
+      if (typeof document !== "undefined" && document.hidden) return;
+      try {
+        const res = await fetch("/api/home", { cache: "no-store" });
+        if (!res.ok || !active) return;
+        const d = (await res.json()) as HomeData;
+        if (!active) return;
+        setLiveResults(d.liveResults || []);
+        setNextResults(d.nextResults || []);
+        setRestResults(d.restResults || []);
+        setSk24Games(d.sk24Games || []);
+        setCustomGames(d.customGames || {});
+        setCustomGamesYesterday(d.customGamesYesterday || {});
+      } catch {
+        // Network hiccup — keep showing the last good data, try again next tick.
+      }
+    };
+    const id = setInterval(load, 30000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
 
   const updatedAt = format(new Date(), "dd MMMM yyyy, hh:mm a") + " IST";
 
@@ -128,7 +159,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     { name: "MATHURA CITY", time: "6:50 PM", seedOffset: 9, customKey: "mathura-city", aliases: [] },
     { name: "GAZIABAD", time: "9:20 PM", seedOffset: 13, customKey: "", aliases: ["ghaziabad", "gzbd"] },
     { name: "GALI", time: "11:20 PM", seedOffset: 15, customKey: "", aliases: [] },
-    { name: "DISAWAR", time: "1:30 AM", seedOffset: 17, customKey: "", aliases: ["desawar", "desawer", "dswr"] },
+    { name: "DISAWAR", time: "5:00 AM", seedOffset: 17, customKey: "", aliases: ["desawar", "desawer", "dswr"] },
   ];
 
   // const allApiGames = [...liveResults, ...nextResults, ...restResults, ...sk24Games];
@@ -262,6 +293,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           <span className="w-2 h-2 bg-green-400 rounded-full animate-live-pulse" />
           {t("अंतिम अपडेट", "Last Updated", lang)}: {updatedAt}
         </div>
+
+        {/* Live countdown to the next result */}
+        <CountdownTimer games={topGameDefs} lang={lang} />
       </div>
 
       {/* Disclaimer */}
@@ -448,13 +482,99 @@ function rollByTime(
 ): { yesterday: string; today: string } {
   const resultMin = parseGameTimeToMinutes(time);
   const declaredToday = resultMin === null || istNowMinutes() >= resultMin;
+  // Treat "XX"/empty as "no value" so a pending marker never overrides a real
+  // result (e.g. `"XX" || "91"` would wrongly return "XX" without this).
+  const realToday = existingToday && existingToday !== "XX" ? existingToday : "";
+  const realYesterday = existingYesterday && existingYesterday !== "XX" ? existingYesterday : "";
   if (declaredToday) {
-    return { yesterday: existingYesterday || "XX", today: existingToday };
+    return { yesterday: realYesterday || "XX", today: existingToday || "XX" };
   }
+  // Not declared yet today: Today is pending. If the source's "today" still holds
+  // an un-rolled real number that IS yesterday's result; otherwise use yesterday.
   return {
-    yesterday: existingToday || existingYesterday || "XX",
+    yesterday: realToday || realYesterday || "XX",
     today: "XX",
   };
+}
+
+// Current IST wall-clock as seconds since midnight (0–86399).
+function istSecondsOfDay(): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const h = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10) % 24;
+  const m = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+  const s = parseInt(parts.find((p) => p.type === "second")?.value || "0", 10);
+  return h * 3600 + m * 60 + s;
+}
+
+// Find the next game to be declared and how many seconds away it is (wraps to
+// tomorrow's earliest game once the day's last result has passed).
+function nextResultTarget(
+  games: { name: string; time: string }[],
+  istSec: number
+): { name: string; diff: number } | null {
+  let best: { name: string; diff: number } | null = null;
+  for (const g of games) {
+    const mins = parseGameTimeToMinutes(g.time);
+    if (mins === null) continue;
+    let diff = mins * 60 - istSec;
+    if (diff <= 0) diff += 24 * 3600; // already passed today → tomorrow
+    if (!best || diff < best.diff) best = { name: g.name, diff };
+  }
+  return best;
+}
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+
+// Live "next result in HH:MM:SS" ticker. Isolated so only this small component
+// re-renders every second — the heavy board above it does not.
+function CountdownTimer({
+  games,
+  lang,
+}: {
+  games: { name: string; time: string }[];
+  lang: "hi" | "en";
+}) {
+  const [sec, setSec] = useState<number | null>(null);
+  useEffect(() => {
+    setSec(istSecondsOfDay());
+    const id = setInterval(() => setSec(istSecondsOfDay()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (sec === null) return null; // avoid SSR/client mismatch — mount first
+  const target = nextResultTarget(games, sec);
+  if (!target) return null;
+
+  const hh = Math.floor(target.diff / 3600);
+  const mm = Math.floor((target.diff % 3600) / 60);
+  const ss = target.diff % 60;
+
+  return (
+    <div className="mt-4 flex flex-col items-center gap-1.5">
+      <span className="text-[11px] md:text-xs text-gray-400 uppercase tracking-wider">
+        {t("अगला रिजल्ट", "Next Result", lang)}
+        <span className="text-amber-400 font-bold"> {target.name}</span>
+      </span>
+      <div className="flex items-center gap-1.5 font-mono">
+        {[hh, mm, ss].map((v, i) => (
+          <span key={i} className="flex items-center gap-1.5">
+            {i > 0 && <span className="text-amber-400 font-bold">:</span>}
+            <span className="bg-white/10 border border-white/15 rounded-lg px-2.5 py-1.5 text-lg md:text-xl font-black text-white tabular-nums">
+              {pad2(v)}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // Ordinal suffix for a day number, e.g. 1 -> "st", 27 -> "th".

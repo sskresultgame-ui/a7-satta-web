@@ -51,7 +51,18 @@ async function getCustomGamesForDate(date: string) {
 }
 
 // Fetch everything the homepage needs, in parallel, from Firestore (no scraping).
+// Process-level memo so the SSR page render AND every /api/home poll share a
+// single Firestore read for ~30s. This is the main lever that keeps the whole
+// system inside Firebase's free tier (50k reads/day) — the underlying data only
+// changes once per cron cycle anyway, so re-reading it more often is wasted quota.
+let homeCache: { data: HomeData; expiresAt: number } | null = null;
+const HOME_TTL_MS = 30_000; // 30s
+
 export async function getHomeData(): Promise<HomeData> {
+  if (homeCache && Date.now() < homeCache.expiresAt) {
+    return homeCache.data;
+  }
+
   const now = new Date();
   const monthName = now.toLocaleString("en-US", { month: "long" }).toLowerCase();
   const year = now.getFullYear().toString();
@@ -68,7 +79,7 @@ export async function getHomeData(): Promise<HomeData> {
     getCustomGamesForDate(yesterday),
   ]);
 
-  return {
+  const data: HomeData = {
     liveResults: homepage?.live || [],
     nextResults: homepage?.next || [],
     restResults: homepage?.rest || [],
@@ -83,4 +94,7 @@ export async function getHomeData(): Promise<HomeData> {
     customGamesYesterday: customPrev.games || {},
     khaiwal: custom.khaiwal || null,
   };
+
+  homeCache = { data, expiresAt: Date.now() + HOME_TTL_MS };
+  return data;
 }
