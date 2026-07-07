@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
+import Image from "next/image";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -25,13 +26,21 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-3 md:px-4">
         <div className="flex items-center justify-between h-14 md:h-16">
           <Link href="/" className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center font-black text-lg text-white shadow-md">
-              A7
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="A7Satta Logo"
+                width={58}
+                height={58}
+                className="rounded-full object-cover"
+                priority
+              />
+
+              {/* <span className="text-lg md:text-xl font-black tracking-tight">
+                <span className="text-white">A7</span>
+                <span className="text-amber-400">SATTA</span>
+              </span> */}
             </div>
-            <span className="text-lg md:text-xl font-black tracking-tight">
-              <span className="text-white">A7</span>
-              <span className="text-amber-400">SATTA</span>
-            </span>
           </Link>
 
           {/* Nav links */}
