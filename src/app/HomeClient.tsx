@@ -155,7 +155,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     { name: "MANIPUR", time: "2:30 PM", seedOffset: 3, customKey: "manipur", aliases: [] },
     { name: "UP BAZAR", time: "3:30 PM", seedOffset: 5, customKey: "up-bazar", aliases: ["upbazar"] },
     { name: "PALWAL CITY", time: "4:30 PM", seedOffset: 7, customKey: "palwal-city", aliases: [] },
-    { name: "FRIDABAD", time: "5:45 PM", seedOffset: 11, customKey: "", aliases: ["faridabad", "frbd"] },
+    { name: "FRIDABAD", time: "6:00 PM", seedOffset: 11, customKey: "", aliases: ["faridabad", "frbd"] },
     { name: "MATHURA CITY", time: "6:50 PM", seedOffset: 9, customKey: "mathura-city", aliases: [] },
     { name: "GAZIABAD", time: "9:20 PM", seedOffset: 13, customKey: "", aliases: ["ghaziabad", "gzbd"] },
     { name: "GALI", time: "11:20 PM", seedOffset: 15, customKey: "", aliases: [] },
