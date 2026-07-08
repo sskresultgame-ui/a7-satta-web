@@ -108,8 +108,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      default:
-        "A7 Satta | Live A7 Satta Result 2026 | Gali Desawar Faridabad Ghaziabad",
+      default: `${formattedDate} A7 Satta Result | Live A7 Satta | Gali Desawar Faridabad Ghaziabad`,
+      // default:
+      //   "A7 Satta | Live A7 Satta Result 2026 | Gali Desawar Faridabad Ghaziabad",
       template: "%s | A7 Satta",
     },
 
