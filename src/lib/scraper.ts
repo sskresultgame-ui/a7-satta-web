@@ -1,8 +1,189 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import type { GameResult, ChartRow, SK24Game, SK24ChartTable } from "./types";
 
 const HEADERS = { "User-Agent": "Mozilla/5.0" };
 const TIMEOUT = 15_000;
+
+// Extract HTML tables from Next.js RSC streaming payload.
+// RSC pages embed rendered HTML inside script tags, not in the DOM.
+function extractRSCHtml(html: string): string {
+  const tableMatches = html.match(/<table class="newtable"[\s\S]*?<\/table>/g);
+  if (tableMatches && tableMatches.length > 0) {
+    return tableMatches.join("\n");
+  }
+  return html;
+}
+
+// ─── Homepage Scraper (LIVE / NEXT / REST) ───
+// FALLBACK ONLY: used when Firebase is empty or its read quota is exhausted, so
+// the site still shows data. Normal reads come from Firebase.
+
+export async function scrapeHomepage(): Promise<{
+  live: GameResult[];
+  next: GameResult[];
+  rest: GameResult[];
+}> {
+  const { data } = await axios.get("https://satta-king-fast.com/", {
+    headers: HEADERS,
+    timeout: TIMEOUT,
+  });
+
+  const $ = cheerio.load(data);
+  const live: GameResult[] = [];
+  const next: GameResult[] = [];
+  const rest: GameResult[] = [];
+  let currentSection = "";
+
+  $("tr").each((_i, el) => {
+    const heading = $(el).find("td.games-name h3").text().trim();
+    if (heading === "LIVE" || heading === "NEXT" || heading === "REST") {
+      currentSection = heading;
+      return;
+    }
+    if (
+      currentSection &&
+      ($(el).hasClass("game-result") || $(el).hasClass("game-result highlight"))
+    ) {
+      const name = $(el).find(".game-name").text().trim();
+      if (!name) return;
+      const game: GameResult = {
+        name,
+        time: $(el).find(".game-time").text().replace("at", "").trim(),
+        yesterday: $(el).find(".yesterday-number h3").text().trim(),
+        today: $(el).find(".today-number h3").text().trim(),
+      };
+      if (currentSection === "LIVE") live.push(game);
+      else if (currentSection === "NEXT") next.push(game);
+      else if (currentSection === "REST") rest.push(game);
+    }
+  });
+
+  return { live, next, rest };
+}
+
+// ─── Satta King 24 Board Scraper (fallback) ───
+
+export async function scrapeSK24Games(): Promise<SK24Game[]> {
+  const { data: html } = await axios.get("https://www.satta-king-24.com/", {
+    timeout: TIMEOUT,
+    headers: HEADERS,
+  });
+
+  const $ = cheerio.load(html);
+  const games: SK24Game[] = [];
+
+  $("#games .gboardhalf").each((_, el) => {
+    const name = $(el).find(".gbgamehalf").text().trim();
+    const time = $(el).find(".gbhalftime").text().replace(/[()]/g, "").trim();
+    const yesterday = $(el).find(".gbhalfresulto").text().replace(/[\[\]]/g, "").trim();
+    const today = $(el).find(".gbhalfresultn").text().replace(/[\[\]]/g, "").trim();
+    if (name) games.push({ name, time, yesterday, today });
+  });
+
+  return games;
+}
+
+// ─── Satta King 24 Chart Tables Scraper (fallback) ───
+
+export async function scrapeSK24Charts(): Promise<SK24ChartTable[]> {
+  const { data: rawHtml } = await axios.get("https://www.satta-king-24.com/chart", {
+    timeout: TIMEOUT,
+    headers: HEADERS,
+  });
+
+  const tableHtml = extractRSCHtml(rawHtml);
+  const $ = cheerio.load(tableHtml);
+  const tables: SK24ChartTable[] = [];
+
+  $("table.newtable").each((_, table) => {
+    const headers: string[] = [];
+    $(table).find("th").each((_, th) => {
+      headers.push($(th).text().trim());
+    });
+    const title = headers.filter((h) => h.toUpperCase() !== "DATE").join(", ");
+
+    const rows: string[][] = [];
+    $(table).find("tr").each((_, tr) => {
+      const tds = $(tr).find("td");
+      if (tds.length === 0) return;
+      const cells: string[] = [];
+      tds.each((_, td) => {
+        const text = $(td).text().trim();
+        cells.push(text === "-" ? "" : text);
+      });
+      if (cells.length > 0) rows.push(cells);
+    });
+
+    if (headers.length > 0) tables.push({ title, headers, rows });
+  });
+
+  return tables;
+}
+
+// ─── Monthly Chart Scraper (fallback) ───
+
+export async function scrapeMonthlyChart(month: string, year: string): Promise<ChartRow[]> {
+  const monthMap: Record<string, string> = {
+    january: "01", february: "02", march: "03", april: "04",
+    may: "05", june: "06", july: "07", august: "08",
+    september: "09", october: "10", november: "11", december: "12",
+  };
+
+  const monthNumber = monthMap[month.toLowerCase()];
+  const formattedMonth = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
+  const queryStr = `?ResultFor=${formattedMonth}-${year}&month=${monthNumber}&year=${year}`;
+
+  const [mainRes, sgRes, dbRes] = await Promise.all([
+    axios.get(`https://satta-king-fast.com/chart.php${queryStr}`, { headers: HEADERS, timeout: TIMEOUT }),
+    axios.get(`https://satta-king-fast.com/shri-ganesh/satta-result-chart/sg/${queryStr}`, { headers: HEADERS, timeout: TIMEOUT }),
+    axios.get(`https://satta-king-fast.com/delhi-bazar/satta-result-chart/db/${queryStr}`, { headers: HEADERS, timeout: TIMEOUT }),
+  ]);
+
+  function extractColumn(html: string, colAbbr: string): Record<string, string> {
+    const $ = cheerio.load(html);
+    const cols: string[] = [];
+    $("th.name, th[class='name']").each((_i, el) => {
+      cols.push($(el).text().trim().toUpperCase());
+    });
+    const colIndex = cols.indexOf(colAbbr);
+    const map: Record<string, string> = {};
+    $("tr.day-number").each((_i, el) => {
+      const date = $(el).find("td.day").text().trim();
+      if (!date) return;
+      const numbers = $(el).find("td.number").map((_i, item) => $(item).text().trim()).get();
+      if (numbers.length > cols.length) numbers.shift();
+      map[date] = colIndex >= 0 ? (numbers[colIndex] || "XX") : "XX";
+    });
+    return map;
+  }
+
+  const srgnMap = extractColumn(sgRes.data, "SRGN");
+  const dlbzMap = extractColumn(dbRes.data, "DLBZ");
+
+  const $ = cheerio.load(mainRes.data);
+  const results: ChartRow[] = [];
+
+  $("table.chart-table tr.day-number").each((_i, el) => {
+    const date = $(el).find("td.day").text().trim();
+    let numbers = $(el).find("td.number").map((_i, item) => $(item).text().trim()).get();
+    if (numbers.length > 4) numbers.shift();
+
+    if (date) {
+      results.push({
+        date,
+        dswr: numbers[0] || "XX",
+        frbd: numbers[1] || "XX",
+        gzbd: numbers[2] || "XX",
+        gali: numbers[3] || "XX",
+        srgn: srgnMap[date] || "XX",
+        dlbz: dlbzMap[date] || "XX",
+      });
+    }
+  });
+
+  return results;
+}
 
 // ─── Game Chart Scraper ───
 

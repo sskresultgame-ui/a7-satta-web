@@ -1,7 +1,21 @@
 import { NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { memGet, memSet, CHART_CACHE_HEADERS } from "@/lib/api-helpers";
 
 const COLLECTION = "custom_games";
+
+// A custom-game chart reads ~30 Firestore docs (one per day of the month). Cache
+// the built response so repeated chart-page views don't re-read the whole month
+// on every hit — that keeps these pages inside Firebase's free tier.
+type ChartPayload = {
+  success: true;
+  gameName: string;
+  chartTitle: string;
+  month: string;
+  year: string;
+  columns: string[];
+  results: { date: string; day: string; result: string }[];
+};
 
 // GET - Fetch monthly chart data for a custom game
 export async function GET(req: NextRequest) {
@@ -12,6 +26,12 @@ export async function GET(req: NextRequest) {
 
   if (!game) {
     return Response.json({ success: false, error: "game is required" }, { status: 400 });
+  }
+
+  const cacheKey = `custom-chart:${game}:${month}:${year}`;
+  const cached = memGet<ChartPayload>(cacheKey);
+  if (cached) {
+    return Response.json(cached, { headers: CHART_CACHE_HEADERS });
   }
 
   try {
@@ -59,7 +79,7 @@ export async function GET(req: NextRequest) {
       "July", "August", "September", "October", "November", "December",
     ];
 
-    return Response.json({
+    const payload: ChartPayload = {
       success: true,
       gameName: game.replace(/-/g, " ").toUpperCase(),
       chartTitle: `${game.replace(/-/g, " ").toUpperCase()} - ${monthNames[month - 1]} ${year}`,
@@ -67,7 +87,9 @@ export async function GET(req: NextRequest) {
       year: String(year),
       columns: ["Date", "Day", "Result"],
       results,
-    });
+    };
+    memSet(cacheKey, payload, 300);
+    return Response.json(payload, { headers: CHART_CACHE_HEADERS });
   } catch (error) {
     return Response.json(
       { success: false, error: (error as Error).message },

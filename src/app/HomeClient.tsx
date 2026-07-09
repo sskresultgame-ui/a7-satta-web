@@ -89,51 +89,30 @@ function CardSkeleton() {
 export default function HomeClient({ initialData }: { initialData: HomeData }) {
   // ✅ Data is fetched on the server and passed in as props — no client-side
   // fetch waterfall, so everything is present on first paint.
-  const [liveResults, setLiveResults] = useState<GameResult[]>(initialData.liveResults);
-  const [nextResults, setNextResults] = useState<GameResult[]>(initialData.nextResults);
-  const [restResults, setRestResults] = useState<GameResult[]>(initialData.restResults);
-  const [sk24Games, setSk24Games] = useState<SK24Game[]>(initialData.sk24Games);
+  // Data is server-rendered and passed in as props. We intentionally do NOT poll
+  // for live updates anymore (see below) — the board shows the SSR snapshot, which
+  // is refreshed on each page load via the page's `revalidate` window.
+  const [liveResults] = useState<GameResult[]>(initialData.liveResults);
+  const [nextResults] = useState<GameResult[]>(initialData.nextResults);
+  const [restResults] = useState<GameResult[]>(initialData.restResults);
+  const [sk24Games] = useState<SK24Game[]>(initialData.sk24Games);
   const [sk24Charts] = useState<SK24ChartTable[]>(initialData.sk24Charts);
   const [monthlyChart] = useState<ChartRow[]>(initialData.monthlyChart);
   const [monthlyChartMeta] = useState<{ month: string; year: string }>(initialData.monthlyChartMeta);
-  const [customGames, setCustomGames] = useState<Record<string, string>>(initialData.customGames);
-  const [customGamesYesterday, setCustomGamesYesterday] = useState<Record<string, string>>(initialData.customGamesYesterday);
+  const [customGames] = useState<Record<string, string>>(initialData.customGames);
+  const [customGamesYesterday] = useState<Record<string, string>>(initialData.customGamesYesterday);
   const [loading] = useState(false);
   const [khaiwal] = useState<any>(initialData.khaiwal);
 
   const containerRef = useScrollAnimation([loading]);
   const { lang } = useLanguage();
 
-  // ─── Live refresh: poll the board every 30s and update in place (no reload). ───
-  // Keeps results fresh without a full page navigation. The /api/home response is
-  // CDN-cached + memoized for 30s, so this stays inside Firebase's free tier even
-  // with many concurrent visitors.
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      // Don't poll while the tab is in the background — saves needless load.
-      if (typeof document !== "undefined" && document.hidden) return;
-      try {
-        const res = await fetch("/api/home", { cache: "no-store" });
-        if (!res.ok || !active) return;
-        const d = (await res.json()) as HomeData;
-        if (!active) return;
-        setLiveResults(d.liveResults || []);
-        setNextResults(d.nextResults || []);
-        setRestResults(d.restResults || []);
-        setSk24Games(d.sk24Games || []);
-        setCustomGames(d.customGames || {});
-        setCustomGamesYesterday(d.customGamesYesterday || {});
-      } catch {
-        // Network hiccup — keep showing the last good data, try again next tick.
-      }
-    };
-    const id = setInterval(load, 30000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, []);
+  // ─── Real-time live polling REMOVED (Firebase free-tier). ───
+  // Previously this polled /api/home every 30s from every visitor's browser,
+  // which drove continuous Firestore reads and was the main cause of blowing the
+  // free-tier read quota. The board now shows the server-rendered snapshot, which
+  // Next.js refreshes on its own `revalidate` cycle — so results still update, just
+  // on page load / navigation instead of a live in-place ticker.
 
   const updatedAt = format(new Date(), "dd MMMM yyyy, hh:mm a") + " IST";
 
@@ -357,10 +336,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
             {/* ─── 4TH SECTION: WhatsApp / Khaiwal ─── */}
             <WhatsAppContactSection lang={lang} khaiwal={khaiwal} />
 
-            {/* SK24 Charts */}
-            {sk24Charts.length > 0 && (
-              <SK24ChartsSection tables={sk24Charts} lang={lang} />
-            )}
+           
 
             {/* LIVE (remaining) */}
             {filteredLive.length > 0 && (
