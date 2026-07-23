@@ -774,8 +774,8 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
 
 
 function WhatsAppContactSection({ lang, khaiwal }: any) {
-  const phone = khaiwal?.whatsapp || "7015670866";
-  const name = khaiwal?.name || "Rizwan bhai khaiwal";
+  const phone = khaiwal?.whatsapp || "9992617649";
+  const name = khaiwal?.name || "Kuber Bhai";
 
   const games = [
                   { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
