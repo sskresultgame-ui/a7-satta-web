@@ -774,17 +774,20 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
 
 
 function WhatsAppContactSection({ lang, khaiwal }: any) {
-  const phone = khaiwal?.whatsapp || "9992617649";
-  const name = khaiwal?.name || "Kuber Bhai";
+  const phone = khaiwal?.whatsapp || "8684857956";
+  const name = khaiwal?.name || "GUDDU BHAI KHAIWAL";
 
   const games = [
-                  { name: t("कोहलापुर", "Kohlapur", lang), time: "1:30" },
-                  { name: t("मणिपुर", "Manipur", lang), time: "2:30" },
-                  { name: t("UP बाज़ार", "UP Bazar", lang), time: "3:30" },
-                  { name: t("पलवल City", "Palwal City", lang), time: "4:30" },
-                  { name: "Fridabad", time: "5:45" },
-                  { name: t("मथूरा City", "Mathura City", lang), time: "6:50" },
-                ];
+    { name: t("शिरडी धाम", "Shirdi Dham", lang), time: "1:00" },
+    { name: t("कलियर", "Kaliyar", lang), time: "2:00" },
+    { name: t("दिल्ली बाजार", "Delhi Bazar", lang), time: "3:00" },
+    { name: t("श्री गणेश", "Shri Ganesh", lang), time: "4:30" },
+    { name: t("फरीदाबाद", "Faridabad", lang), time: "6:00" },
+    { name: t("शक्ति पीठ", "Shakti Peeth", lang), time: "7:30" },
+    { name: t("गाज़ियाबाद", "Ghaziabad", lang), time: "9:30" },
+    { name: t("मथुरा", "Mathura", lang), time: "10:20" },
+    { name: t("गली", "Gali", lang), time: "11:30" },
+    { name: t("दिसावर", "Disawar", lang), time: "4:50" },
 
   return (
     <section className="sa opacity-0 translate-y-8">
