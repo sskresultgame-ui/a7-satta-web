@@ -788,7 +788,7 @@ function WhatsAppContactSection({ lang, khaiwal }: any) {
     { name: t("मथुरा", "Mathura", lang), time: "10:20" },
     { name: t("गली", "Gali", lang), time: "11:30" },
     { name: t("दिसावर", "Disawar", lang), time: "4:50" },
-
+];
   return (
     <section className="sa opacity-0 translate-y-8">
       <div className="relative overflow-hidden rounded-3xl border-4 border-dashed border-red-500 bg-gradient-to-b from-yellow-300 via-yellow-100 to-white shadow-xl">
