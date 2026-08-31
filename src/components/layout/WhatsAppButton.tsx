@@ -41,7 +41,7 @@ import { useLanguage } from "@/context/LanguageContext";
 export function WhatsAppButton() {
   const { lang, toggleLang } = useLanguage();
 
-  const [phone, setPhone] = useState("918901302607");
+   const [phone, setPhone] = useState("918684857956");
 
   useEffect(() => {
     const fetchKhaiwal = async () => {
