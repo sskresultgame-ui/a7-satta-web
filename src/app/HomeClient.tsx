@@ -7,6 +7,7 @@ import { FiClock, FiTrendingUp, FiZap, FiBarChart2, FiCalendar, FiChevronDown } 
 import { FaWhatsapp } from "react-icons/fa";
 import { useLanguage, t } from "@/context/LanguageContext";
 import type { HomeData } from "@/lib/home-data";
+import { getWhatsAppLink, normalizeIndianPhoneNumber } from "@/lib/utils";
 
 // ─── Types ───
 
@@ -196,7 +197,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const section3GameNames = [
     "sadar bazar", "gwalior", "delhi bazar", "delhi matka",
     "shri ganesh", "agra", "faridabad", "alwar",
-    "gaziabad", "dwarka", "gali",
+    "gaziabad", "dwarka", "gali", "desawer",
   ];
   // Alternate name mappings for 3rd section
   const section3Aliases: Record<string, string[]> = {
@@ -204,6 +205,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     "gaziabad": ["ghaziabad", "gzbd"],
     "delhi bazar": ["delhibazar", "dlbz"],
     "shri ganesh": ["shriganesh", "srgn"],
+    "desawer": ["desawar", "disawar", "dswr"],
   };
   const section3Games: SK24Game[] = section3GameNames.map(name => {
     const norm = name.toLowerCase().replace(/\s+/g, "");
@@ -274,7 +276,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         </div>
 
         {/* Live countdown to the next result */}
-        <CountdownTimer games={topGameDefs} lang={lang} />
+        <CountdownTimer games={section3Games} lang={lang} />
       </div>
 
       {/* Disclaimer */}
@@ -303,12 +305,12 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           <>
             {/* ─── 1ST SECTION: Top 9 Games ─── */}
             <GameCardSection
-              title={t("आज के A7 सट्टा रिजल्ट", "Today A7 Satta Results", lang)}
-              subtitle={t("इंटरनेट पर सबसे तेज़ A7 सट्टा रिजल्ट", "Fastest A7 Satta result on internet", lang)}
-              icon={<FiZap size={18} />}
-              headerBg="bg-blue-600"
-              accentColor="text-blue-600"
-              games={topGames}
+                           title={t("आज के A7 सट्टा रिजल्ट", "Today A7 Satta Results", lang)}
+                           subtitle={t("इंटरनेट पर सबसे तेज़ A7 सट्टा रिजल्ट", "Fastest A7 Satta result on internet", lang)}
+              icon={<FiBarChart2 size={18} />}
+              headerBg="bg-purple-600"
+              accentColor="text-purple-600"
+              games={section3Games}
               isLive
               lang={lang}
             />
@@ -321,17 +323,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
               lang={lang}
             />
 
-            {/* ─── 3RD SECTION: Specific Games ─── */}
-            <GameCardSection
-              title={t("अन्य गेम रिजल्ट", "Other Game Results", lang)}
-              subtitle={t("सदर बाज़ार, ग्वालियर, दिल्ली बाज़ार और अन्य", "Sadar Bazar, Gwalior, Delhi Bazar & more", lang)}
-              icon={<FiBarChart2 size={18} />}
-              headerBg="bg-purple-600"
-              accentColor="text-purple-600"
-              games={section3Games}
-              isLive
-              lang={lang}
-            />
+
 
             {/* ─── 4TH SECTION: WhatsApp / Khaiwal ─── */}
             <WhatsAppContactSection lang={lang} khaiwal={khaiwal} />
@@ -775,20 +767,23 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
 
 function WhatsAppContactSection({ lang, khaiwal }: any) {
   const phone = khaiwal?.whatsapp || "8684857956";
+  const normalizedPhone = normalizeIndianPhoneNumber(phone);
   const name = khaiwal?.name || "GUDDU BHAI KHAIWAL";
 
   const games = [
-    { name: t("शिरडी धाम", "Shirdi Dham", lang), time: "1:00" },
-    { name: t("कलियर", "Kaliyar", lang), time: "2:00" },
-    { name: t("दिल्ली बाजार", "Delhi Bazar", lang), time: "3:00" },
-    { name: t("श्री गणेश", "Shri Ganesh", lang), time: "4:30" },
-    { name: t("फरीदाबाद", "Faridabad", lang), time: "6:00" },
-    { name: t("शक्ति पीठ", "Shakti Peeth", lang), time: "7:30" },
-    { name: t("गाज़ियाबाद", "Ghaziabad", lang), time: "9:30" },
-    { name: t("मथुरा", "Mathura", lang), time: "10:20" },
-    { name: t("गली", "Gali", lang), time: "11:30" },
-    { name: t("दिसावर", "Disawar", lang), time: "4:50" },
-];
+    { name: t("सदर बाजार", "Sadar Bazar", lang), time: "1:30 PM" },
+    { name: t("ग्वालियर", "Gwalior", lang), time: "2:30 PM" },
+    { name: t("दिल्ली बाजार", "Delhi Bazar", lang), time: "2:50 PM" },
+    { name: t("दिल्ली मटका", "Delhi Matka", lang), time: "3:20 PM" },
+    { name: t("श्री गणेश", "Shri Ganesh", lang), time: "4:20 PM" },
+    { name: t("आगरा", "Agra", lang), time: "5:20 PM" },
+    { name: t("फरीदाबाद", "Faridabad", lang), time: "5:50 PM" },
+    { name: t("अलवर", "Alwar", lang), time: "7:20 PM" },
+    { name: t("गाज़ियाबाद", "Ghaziabad", lang), time: "8:50 PM" },
+    { name: t("द्वारका", "Dwarka", lang), time: "10:10 PM" },
+    { name: t("गली", "Gali", lang), time: "11:20 PM" },
+    { name: t("दिसावर", "Disawar", lang), time: "1:30 AM" },
+  ];
   return (
     <section className="sa opacity-0 translate-y-8">
       <div className="relative overflow-hidden rounded-3xl border-4 border-dashed border-red-500 bg-gradient-to-b from-yellow-300 via-yellow-100 to-white shadow-xl">
@@ -862,10 +857,10 @@ function WhatsAppContactSection({ lang, khaiwal }: any) {
         {/* Phone */}
         <div className="text-center px-4">
           <a
-            href={`tel:+${phone}`}
+            href={`tel:+${normalizedPhone}`}
             className="inline-block text-3xl md:text-4xl font-black text-blue-700 border-b-4 border-blue-700"
           >
-            +91{phone}
+            +{normalizedPhone}
           </a>
         </div>
 
@@ -883,9 +878,7 @@ function WhatsAppContactSection({ lang, khaiwal }: any) {
         {/* WhatsApp Button */}
         <div className="px-4 pb-8 pt-5 flex justify-center">
           <a
-            href={`https://wa.me/${phone}?text=${encodeURIComponent(
-              "A7 SATTA"
-            )}`}
+            href={getWhatsAppLink(phone, "A7 SATTA")}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-black text-lg shadow-lg hover:scale-105 transition-all"

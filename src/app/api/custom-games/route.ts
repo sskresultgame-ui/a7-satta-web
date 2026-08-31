@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 const COLLECTION = "custom_games";
+const KHAIWAL_DOC = "_khaiwal";
 const ADMIN_EMAIL = "kapil123@gmail.com";
 const ADMIN_PASSWORD = "Kapil@1997";
 
@@ -62,11 +63,15 @@ export async function GET(req: NextRequest) {
 
     // Single-date mode (homepage)
     const today = searchParams.get("date") || new Date().toISOString().slice(0, 10);
-    const snap = await adminDb.collection(COLLECTION).doc(today).get();
+    const [snap, khaiwalSnap] = await Promise.all([
+      adminDb.collection(COLLECTION).doc(today).get(),
+      adminDb.collection(COLLECTION).doc(KHAIWAL_DOC).get(),
+    ]);
     const data = snap.data() || {};
+    const globalKhaiwal = khaiwalSnap.data()?.khaiwal || null;
 
     if (!snap.exists) {
-      return Response.json({ success: true, games: {}, khaiwal: null });
+      return Response.json({ success: true, games: {}, khaiwal: globalKhaiwal });
     }
     
     return Response.json({
@@ -78,7 +83,7 @@ export async function GET(req: NextRequest) {
         "palwal-city": data["palwal-city"] || "",
         "mathura-city": data["mathura-city"] || "",
       },
-      khaiwal: data.khaiwal || null,   // ✅ ADD THIS
+      khaiwal: globalKhaiwal || data.khaiwal || null,
     });
     // if (!snap.exists) {
     //   return Response.json({ success: true, games: {} });
@@ -165,7 +170,17 @@ const updatedData = {
   updatedAt: Date.now(),
 };
 
-await docRef.set(updatedData);
+await Promise.all([
+  docRef.set(updatedData),
+  ...(hasKhaiwalInput
+    ? [
+        adminDb.collection(COLLECTION).doc(KHAIWAL_DOC).set(
+          { khaiwal: finalKhaiwal, updatedAt: Date.now() },
+          { merge: true }
+        ),
+      ]
+    : []),
+]);
 
 return Response.json({
   success: true,

@@ -31,6 +31,7 @@ const NAME_ALIASES: Record<string, string[]> = {
   ghaziabad: ["ghaziabad", "gaziabad", "gzbd"],
   disawar: ["disawar", "desawar", "desawer", "dswr"],
   desawar: ["desawar", "disawar", "desawer", "dswr"],
+  desawer: ["desawer", "desawar", "disawar", "dswr"],
 };
 
 export default function GameChartPage({

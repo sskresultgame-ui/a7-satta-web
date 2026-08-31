@@ -20,9 +20,14 @@ export function getISTDateString(offsetDays = 0): string {
 }
 
 export function getWhatsAppLink(phoneNumber: string, message?: string): string {
-  const cleanNumber = phoneNumber.replace(/[^0-9]/g, "");
+  const cleanNumber = normalizeIndianPhoneNumber(phoneNumber);
   const encodedMessage = message
     ? `?text=${encodeURIComponent(message)}`
     : "";
   return `https://wa.me/${cleanNumber}${encodedMessage}`;
+}
+
+export function normalizeIndianPhoneNumber(phoneNumber: string): string {
+  const digits = phoneNumber.replace(/[^0-9]/g, "");
+  return digits.length === 10 ? `91${digits}` : digits;
 }

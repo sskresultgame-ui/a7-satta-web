@@ -1,12 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { FiPhone } from "react-icons/fi";
 import { useLanguage, t } from "@/context/LanguageContext";
+import { getWhatsAppLink, normalizeIndianPhoneNumber } from "@/lib/utils";
 
 export default function ContactPage() {
-  const phone = "918901302607";
+  const [phone, setPhone] = useState("918684857956");
   const { lang } = useLanguage();
+  const normalizedPhone = normalizeIndianPhoneNumber(phone);
+
+  useEffect(() => {
+    fetch("/api/custom-games")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.khaiwal?.whatsapp) setPhone(data.khaiwal.whatsapp);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="bg-white min-h-screen">
@@ -21,7 +33,7 @@ export default function ContactPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* WhatsApp Card */}
           <a
-            href={`https://wa.me/${phone}?text=${encodeURIComponent("A7 SATTA")}`}
+            href={getWhatsAppLink(phone, "A7 SATTA")}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex items-start gap-4 hover:shadow-lg hover:border-green-300 transition-all group"
@@ -34,13 +46,13 @@ export default function ContactPage() {
               <p className="text-gray-500 text-sm mt-0.5">
                 {t("तुरंत चैट करें", "Chat with us instantly", lang)}
               </p>
-              <p className="text-green-600 font-bold text-sm mt-2">+{phone}</p>
+              <p className="text-green-600 font-bold text-sm mt-2">+{normalizedPhone}</p>
             </div>
           </a>
 
           {/* Phone Card */}
           <a
-            href={`tel:+${phone}`}
+            href={`tel:+${normalizedPhone}`}
             className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex items-start gap-4 hover:shadow-lg hover:border-blue-300 transition-all group"
           >
             <div className="p-3 rounded-xl bg-blue-600 text-white shrink-0 group-hover:scale-110 transition-transform">
@@ -51,7 +63,7 @@ export default function ContactPage() {
               <p className="text-gray-500 text-sm mt-0.5">
                 {t("सीधे कॉल करें", "Call us directly", lang)}
               </p>
-              <p className="text-blue-600 font-bold text-sm mt-2">+{phone}</p>
+              <p className="text-blue-600 font-bold text-sm mt-2">+{normalizedPhone}</p>
             </div>
           </a>
 
@@ -64,7 +76,7 @@ export default function ContactPage() {
           </p>
           <p className="text-amber-400 font-black text-2xl mb-4">A7 SATTA</p>
           <a
-            href={`https://wa.me/${phone}?text=${encodeURIComponent("A7 SATTA")}`}
+            href={getWhatsAppLink(phone, "A7 SATTA")}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-xl shadow-green-500/25 transition-all hover:scale-105"

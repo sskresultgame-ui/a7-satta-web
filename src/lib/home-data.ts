@@ -92,6 +92,17 @@ export interface HomeData {
 }
 
 const CUSTOM_COLLECTION = "custom_games";
+const KHAIWAL_DOC = "_khaiwal";
+
+async function getGlobalKhaiwal() {
+  try {
+    const snap = await adminDb.collection(CUSTOM_COLLECTION).doc(KHAIWAL_DOC).get();
+    return snap.data()?.khaiwal || null;
+  } catch (err) {
+    console.error("[home-data] global khaiwal read failed:", (err as Error).message);
+    return null;
+  }
+}
 
 // Read today's custom game values + khaiwal directly from Firestore (server-side).
 async function getCustomGamesForDate(date: string) {
@@ -137,7 +148,7 @@ export async function getHomeData(): Promise<HomeData> {
   const today = getISTDateString(0);
   const yesterday = getISTDateString(-1);
 
-  const [homepageR, sk24R, sk24chartR, chartR, customR, customPrevR] =
+  const [homepageR, sk24R, sk24chartR, chartR, customR, customPrevR, khaiwalR] =
     await Promise.allSettled([
       homepageWithFallback(),
       sk24GamesWithFallback(),
@@ -145,6 +156,7 @@ export async function getHomeData(): Promise<HomeData> {
       monthlyChartWithFallback(monthName, year),
       getCustomGamesForDate(today),
       getCustomGamesForDate(yesterday),
+      getGlobalKhaiwal(),
     ]);
 
   const homepage = homepageR.status === "fulfilled" ? homepageR.value : null;
@@ -156,6 +168,7 @@ export async function getHomeData(): Promise<HomeData> {
       : { results: [], month: monthName, year };
   const custom = customR.status === "fulfilled" ? customR.value : { games: {}, khaiwal: null };
   const customPrev = customPrevR.status === "fulfilled" ? customPrevR.value : { games: {}, khaiwal: null };
+  const globalKhaiwal = khaiwalR.status === "fulfilled" ? khaiwalR.value : null;
 
   const data: HomeData = {
     liveResults: homepage?.live || [],
@@ -167,7 +180,7 @@ export async function getHomeData(): Promise<HomeData> {
     monthlyChartMeta: { month: chart.month || monthName, year: chart.year || year },
     customGames: custom.games || {},
     customGamesYesterday: customPrev.games || {},
-    khaiwal: custom.khaiwal || null,
+    khaiwal: globalKhaiwal || custom.khaiwal || null,
   };
 
   // If even the fallback produced an empty board (both Firebase AND source down),
