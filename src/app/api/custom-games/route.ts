@@ -1,250 +1,68 @@
 import { NextRequest } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { customGamesCollection } from "@/lib/mongodb";
 
-const COLLECTION = "custom_games";
-const KHAIWAL_DOC = "_khaiwal";
 const ADMIN_EMAIL = "kapil123@gmail.com";
 const ADMIN_PASSWORD = "Kapil@1997";
-
-// Known custom game keys (used to flatten the per-date map into a result list)
 const GAME_KEYS = ["kohlapur", "manipur", "up-bazar", "palwal-city", "mathura-city"];
+const isAuthed = (email?: string, password?: string) => email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 
-function isAuthed(email?: string, password?: string) {
-  return email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
-}
-
-// GET
-//   ?date=YYYY-MM-DD            -> { games: { kohlapur: "45", ... } }  (used by homepage)
-//   ?list=1&month=&year=       -> { entries: [{ date, game, value }] } (used by admin list)
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-
-    // List mode for the admin results panel
-    if (searchParams.get("list")) {
+    const params = new URL(req.url).searchParams;
+    const collection = await customGamesCollection();
+    if (params.get("list")) {
+      const all = Boolean(params.get("all"));
       const now = new Date();
-      const month = parseInt(searchParams.get("month") || String(now.getMonth() + 1), 10);
-      const year = parseInt(searchParams.get("year") || String(now.getFullYear()), 10);
-      const all = searchParams.get("all"); // when set, ignore month/year and return everything
-
-      let snapshot;
-      if (all) {
-        snapshot = await adminDb.collection(COLLECTION).get();
-      } else {
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const startStr = `${year}-${String(month).padStart(2, "0")}-01`;
-        const endStr = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-        snapshot = await adminDb
-          .collection(COLLECTION)
-          .where("__name__", ">=", startStr)
-          .where("__name__", "<=", endStr)
-          .get();
-      }
-
-      const entries: { date: string; game: string; value: string }[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data() || {};
-        GAME_KEYS.forEach((g) => {
-          if (data[g] != null && String(data[g]).trim() !== "") {
-            entries.push({ date: doc.id, game: g, value: String(data[g]) });
-          }
-        });
-      });
-
-      // Newest date first; stable game order within a date
-      entries.sort((a, b) => {
-        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-        return GAME_KEYS.indexOf(a.game) - GAME_KEYS.indexOf(b.game);
-      });
-
+      const month = Number(params.get("month") || now.getMonth() + 1);
+      const year = Number(params.get("year") || now.getFullYear());
+      const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+      const docs = await collection.find(all ? { date: { $exists: true } } : { date: { $regex: `^${prefix}` } }).toArray();
+      const entries = docs.flatMap((doc) => GAME_KEYS.flatMap((game) => doc.games?.[game] ? [{ date: doc.date, game, value: String(doc.games[game]) }] : []))
+        .sort((a, b) => b.date.localeCompare(a.date) || GAME_KEYS.indexOf(a.game) - GAME_KEYS.indexOf(b.game));
       return Response.json({ success: true, entries });
     }
-
-    // Single-date mode (homepage)
-    const today = searchParams.get("date") || new Date().toISOString().slice(0, 10);
-    const [snap, khaiwalSnap] = await Promise.all([
-      adminDb.collection(COLLECTION).doc(today).get(),
-      adminDb.collection(COLLECTION).doc(KHAIWAL_DOC).get(),
-    ]);
-    const data = snap.data() || {};
-    const globalKhaiwal = khaiwalSnap.data()?.khaiwal || null;
-
-    if (!snap.exists) {
-      return Response.json({ success: true, games: {}, khaiwal: globalKhaiwal });
-    }
-    
-    return Response.json({
-      success: true,
-      games: {
-        kohlapur: data.kohlapur || "",
-        manipur: data.manipur || "",
-        "up-bazar": data["up-bazar"] || "",
-        "palwal-city": data["palwal-city"] || "",
-        "mathura-city": data["mathura-city"] || "",
-      },
-      khaiwal: globalKhaiwal || data.khaiwal || null,
-    });
-    // if (!snap.exists) {
-    //   return Response.json({ success: true, games: {} });
-    // }
-
-    // return Response.json({ success: true, games: snap.data() || {} });
+    const date = params.get("date") || dateToday();
+    const [doc, global] = await Promise.all([collection.findOne({ date }), collection.findOne({ type: "khaiwal" })]);
+    return Response.json({ success: true, games: doc?.games || {}, khaiwal: global?.khaiwal || doc?.khaiwal || null });
   } catch (error) {
-    return Response.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
+    return Response.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }
 
-// POST - Save custom game values (with simple auth)
 export async function POST(req: NextRequest) {
   try {
-    // const body = await req.json();
-    // console.log("BODY >>>", body);
-    // const { email, password, games,khaiwal, khaiwalName, whatsapp,date } = body;
-    // const finalKhaiwal = khaiwal || {
-    //   name: khaiwalName,
-    //   whatsapp: whatsapp,
-    // };
-    // if (!isAuthed(email, password)) {
-    //   return Response.json(
-    //     { success: false, error: "Invalid credentials" },
-    //     { status: 401 }
-    //   );
-    // }
-
-    // const targetDate = date || new Date().toISOString().slice(0, 10);
-
-    // // Merge with existing data for that date
-    // const docRef = adminDb.collection(COLLECTION).doc(targetDate);
-    // const existing = await docRef.get();
-    // const existingData = existing.exists ? existing.data() || {} : {};
-
-    // const updatedData = { ...existingData, ...games, khaiwal: finalKhaiwal ?? existingData.khaiwal ?? null, updatedAt: Date.now() };
-    // await docRef.set(updatedData);
-
-    // return Response.json({ success: true, games: updatedData });
-    const body = await req.json();
-
-const {
-  email,
-  password,
-  games,
-  khaiwalName,
-  whatsapp,
-  khaiwal,
-  date,
-} = body;
-
-if (!isAuthed(email, password)) {
-  return Response.json(
-    { success: false, error: "Invalid credentials" },
-    { status: 401 }
-  );
-}
-
-const targetDate = date || new Date().toISOString().slice(0, 10);
-
-const docRef = adminDb.collection(COLLECTION).doc(targetDate);
-const existing = await docRef.get();
-const existingData = existing.exists ? existing.data() || {} : {};
-
-// ✅ Khaiwal can be saved on its own (name/whatsapp) or together with games.
-// Accept a partial update — keep any field the admin didn't send.
-const hasKhaiwalInput =
-  khaiwal != null || khaiwalName != null || whatsapp != null;
-
-const finalKhaiwal = !hasKhaiwalInput
-  ? existingData.khaiwal || null
-  : khaiwal || {
-      name: khaiwalName ?? existingData.khaiwal?.name ?? "",
-      whatsapp: whatsapp ?? existingData.khaiwal?.whatsapp ?? "",
-    };
-
-const updatedData = {
-  ...existingData,
-  ...(games || {}),
-  khaiwal: finalKhaiwal,
-  updatedAt: Date.now(),
-};
-
-await Promise.all([
-  docRef.set(updatedData),
-  ...(hasKhaiwalInput
-    ? [
-        adminDb.collection(COLLECTION).doc(KHAIWAL_DOC).set(
-          { khaiwal: finalKhaiwal, updatedAt: Date.now() },
-          { merge: true }
-        ),
-      ]
-    : []),
-]);
-
-return Response.json({
-  success: true,
-  games: updatedData,
-  khaiwal: finalKhaiwal,
-});
+    const { email, password, games, khaiwalName, whatsapp, khaiwal, date } = await req.json();
+    if (!isAuthed(email, password)) return Response.json({ success: false, error: "Invalid credentials" }, { status: 401 });
+    const collection = await customGamesCollection();
+    const targetDate = date || dateToday();
+    const existing = await collection.findOne({ date: targetDate });
+    const finalKhaiwal = khaiwal || ((khaiwalName != null || whatsapp != null) ? { name: khaiwalName ?? existing?.khaiwal?.name ?? "", whatsapp: whatsapp ?? existing?.khaiwal?.whatsapp ?? "" } : existing?.khaiwal || null);
+    const updatedGames = { ...(existing?.games || {}), ...(games || {}) };
+    await collection.updateOne({ date: targetDate }, { $set: { date: targetDate, games: updatedGames, khaiwal: finalKhaiwal, updatedAt: new Date() } }, { upsert: true });
+    if (finalKhaiwal) await collection.updateOne({ type: "khaiwal" }, { $set: { type: "khaiwal", khaiwal: finalKhaiwal, updatedAt: new Date() } }, { upsert: true });
+    return Response.json({ success: true, games: updatedGames, khaiwal: finalKhaiwal });
   } catch (error) {
-    return Response.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
+    return Response.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }
 
-// PATCH - Update a single game's value for a given date
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { email, password, date, game, value } = body;
-
-    if (!isAuthed(email, password)) {
-      return Response.json({ success: false, error: "Invalid credentials" }, { status: 401 });
-    }
-    if (!date || !game) {
-      return Response.json({ success: false, error: "date and game are required" }, { status: 400 });
-    }
-
-    await adminDb
-      .collection(COLLECTION)
-      .doc(date)
-      .set({ [game]: String(value ?? "").trim(), updatedAt: Date.now() }, { merge: true });
-
+    const { email, password, date, game, value } = await req.json();
+    if (!isAuthed(email, password)) return Response.json({ success: false, error: "Invalid credentials" }, { status: 401 });
+    if (!date || !game) return Response.json({ success: false, error: "date and game are required" }, { status: 400 });
+    await (await customGamesCollection()).updateOne({ date }, { $set: { date, [`games.${game}`]: String(value || "").trim(), updatedAt: new Date() } }, { upsert: true });
     return Response.json({ success: true });
-  } catch (error) {
-    return Response.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  } catch (error) { return Response.json({ success: false, error: (error as Error).message }, { status: 500 }); }
 }
 
-// DELETE - Remove a single game's value for a given date
 export async function DELETE(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { email, password, date, game } = body;
-
-    if (!isAuthed(email, password)) {
-      return Response.json({ success: false, error: "Invalid credentials" }, { status: 401 });
-    }
-    if (!date || !game) {
-      return Response.json({ success: false, error: "date and game are required" }, { status: 400 });
-    }
-
-    await adminDb
-      .collection(COLLECTION)
-      .doc(date)
-      .update({ [game]: FieldValue.delete(), updatedAt: Date.now() });
-
+    const { email, password, date, game } = await req.json();
+    if (!isAuthed(email, password)) return Response.json({ success: false, error: "Invalid credentials" }, { status: 401 });
+    if (!date || !game) return Response.json({ success: false, error: "date and game are required" }, { status: 400 });
+    await (await customGamesCollection()).updateOne({ date }, { $unset: { [`games.${game}`]: "" }, $set: { updatedAt: new Date() } });
     return Response.json({ success: true });
-  } catch (error) {
-    return Response.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  } catch (error) { return Response.json({ success: false, error: (error as Error).message }, { status: 500 }); }
 }

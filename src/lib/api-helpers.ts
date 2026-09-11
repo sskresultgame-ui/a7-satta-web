@@ -1,5 +1,4 @@
-import { getHomepageFromFirestore } from "./firebase-cache";
-import { scrapeHomepage } from "./scraper";
+import { getHomepageFromMongo } from "./mongodb";
 import type { HomepageData } from "./types";
 
 // ─── Simple In-Memory Cache ───
@@ -25,30 +24,19 @@ export function memSet<T>(key: string, data: T, ttlSeconds: number): void {
   memCache.set(key, { data, expiresAt: Date.now() + ttlSeconds * 1000 });
 }
 
-// ─── Get Homepage Data (Firebase primary, scrape fallback) ───
-// Normal path is Firebase. If Firebase is empty or its read quota is exhausted
-// (getHomepageFromFirestore returns null), scrape the public source so the board
-// never goes blank. Memoized 60s so the source is hit at most once per minute.
+// ─── Get Homepage Data (MongoDB only) ───
 
 export async function getHomepageData(): Promise<HomepageData | null> {
   const cached = memGet<HomepageData>("homepage");
   if (cached) return cached;
 
-  const firebaseData = await getHomepageFromFirestore();
-  if (firebaseData && (firebaseData.live?.length || firebaseData.rest?.length)) {
-    memSet("homepage", firebaseData, 60);
-    return firebaseData;
-  }
-
-  // Fallback: Firebase empty / quota exhausted — scrape the source directly.
   try {
-    const { live, next, rest } = await scrapeHomepage();
-    const data: HomepageData = { live, next, rest, scrapedAt: Date.now() };
-    memSet("homepage", data, live.length || rest.length ? 60 : 5);
+    const data = await getHomepageFromMongo();
+    memSet("homepage", data, 60);
     return data;
   } catch (err) {
-    console.error("[api-helpers] homepage fallback scrape failed:", (err as Error).message);
-    return firebaseData; // may be null
+    console.error("[api-helpers] MongoDB homepage read failed:", (err as Error).message);
+    return null;
   }
 }
 

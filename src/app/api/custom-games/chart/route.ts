@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { customGamesCollection } from "@/lib/mongodb";
 import { memGet, memSet, CHART_CACHE_HEADERS } from "@/lib/api-helpers";
 
 const COLLECTION = "custom_games";
 
-// A custom-game chart reads ~30 Firestore docs (one per day of the month). Cache
-// the built response so repeated chart-page views don't re-read the whole month
-// on every hit — that keeps these pages inside Firebase's free tier.
+// A custom-game chart reads the selected month's MongoDB records once, then uses
+// the in-memory response cache for repeated chart-page views.
 type ChartPayload = {
   success: true;
   gameName: string;
@@ -46,17 +45,14 @@ export async function GET(req: NextRequest) {
     const startStr = `${year}-${String(month).padStart(2, "0")}-01`;
     const endStr = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
 
-    const snapshot = await adminDb
-      .collection(COLLECTION)
-      .where("__name__", ">=", startStr)
-      .where("__name__", "<=", endStr)
-      .get();
+    const snapshot = await (await customGamesCollection())
+      .find({ date: { $gte: startStr, $lte: endStr } })
+      .toArray();
 
     const dataMap: Record<string, string> = {};
     snapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data[game]) {
-        dataMap[doc.id] = data[game];
+      if (doc.games?.[game]) {
+        dataMap[doc.date] = doc.games[game];
       }
     });
 

@@ -108,10 +108,9 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
   const containerRef = useScrollAnimation([loading]);
   const { lang } = useLanguage();
 
-  // ─── Real-time live polling REMOVED (Firebase free-tier). ───
+  // ─── Real-time live polling is intentionally disabled. ───
   // Previously this polled /api/home every 30s from every visitor's browser,
-  // which drove continuous Firestore reads and was the main cause of blowing the
-  // free-tier read quota. The board now shows the server-rendered snapshot, which
+  // which drove continuous database reads. The board now shows the server-rendered snapshot, which
   // Next.js refreshes on its own `revalidate` cycle — so results still update, just
   // on page load / navigation instead of a live in-place ticker.
 
@@ -162,7 +161,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
     // column (so a declared result rolls into Yesterday at midnight IST).
     const adminYesterday = def.customKey ? customGamesYesterday[def.customKey] : "";
 
-    // Admin custom value (Firebase) takes priority when set for today.
+    // Admin custom value takes priority when set for today.
     if (def.customKey && customGames[def.customKey]) {
       return {
         name: def.name,

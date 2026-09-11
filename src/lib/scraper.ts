@@ -16,8 +16,8 @@ function extractRSCHtml(html: string): string {
 }
 
 // ─── Homepage Scraper (LIVE / NEXT / REST) ───
-// FALLBACK ONLY: used when Firebase is empty or its read quota is exhausted, so
-// the site still shows data. Normal reads come from Firebase.
+// Legacy source scraper retained for data-source utilities; homepage results are
+// now served from MongoDB.
 
 export async function scrapeHomepage(): Promise<{
   live: GameResult[];

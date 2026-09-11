@@ -1,8 +1,8 @@
 import { getHomeData } from "@/lib/home-data";
 
 // Live board data for client-side polling. getHomeData() is memoized (~60s) so
-// this rarely touches Firestore, and the CDN cache below means a burst of
-// visitors collapses into ~one origin hit per 60s — keeps us in Firebase's free tier.
+// this rarely touches MongoDB, and the CDN cache below means a burst of
+// visitors collapses into ~one origin hit per 60s.
 //
 // We return ONLY the fields the client poll actually applies (the live board +
 // custom values). The heavier monthlyChart / sk24Charts are left out to keep the

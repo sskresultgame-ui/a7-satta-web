@@ -1,8 +1,5 @@
 import type { MetadataRoute } from "next";
-import {
-  getHomepageFromFirestore,
-  getSK24GamesFromFirestore,
-} from "@/lib/firebase-cache";
+import { getBoardGames } from "@/lib/mongodb";
 import { BLOG_POSTS } from "@/lib/blog-data";
 
 const BASE_URL = "https://a7satta.co";
@@ -15,7 +12,7 @@ function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, "-");
 }
 
-// Games that always exist on the homepage, regardless of what Firestore returns.
+// Games that always exist on the homepage, regardless of database availability.
 const FIXED_GAME_NAMES = [
   // Top 9
   "KOHLAPUR", "MANIPUR", "UP BAZAR", "PALWAL CITY", "FRIDABAD",
@@ -49,23 +46,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // ─── Chart pages (one per game) ───
-  // Pull live game names from Firestore, then merge with the fixed lists so the
+  // Pull live game names from MongoDB, then merge with the fixed lists so the
   // sitemap is complete even if the cache is momentarily empty.
   const slugs = new Set<string>();
   FIXED_GAME_NAMES.forEach((n) => slugs.add(toSlug(n)));
 
   try {
-    const [homepage, sk24] = await Promise.all([
-      getHomepageFromFirestore(),
-      getSK24GamesFromFirestore(),
-    ]);
-
-    [
-      ...(homepage?.live || []),
-      ...(homepage?.next || []),
-      ...(homepage?.rest || []),
-      ...(sk24?.games || []),
-    ].forEach((g) => {
+    (await getBoardGames()).forEach((g) => {
       if (g?.name) slugs.add(toSlug(g.name));
     });
   } catch {
