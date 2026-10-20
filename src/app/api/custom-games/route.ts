@@ -5,6 +5,8 @@ const ADMIN_EMAIL = "kapil123@gmail.com";
 const ADMIN_PASSWORD = "Kapil@1997";
 const GAME_KEYS = ["kohlapur", "manipur", "up-bazar", "palwal-city", "mathura-city"];
 const isAuthed = (email?: string, password?: string) => email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+// Site-specific key so other sites sharing this Mongo collection can never overwrite our number.
+const KHAIWAL_KEY = { type: "khaiwal", site: "a7satta" };
 const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 
 export async function GET(req: NextRequest) {
@@ -23,8 +25,8 @@ export async function GET(req: NextRequest) {
       return Response.json({ success: true, entries });
     }
     const date = params.get("date") || dateToday();
-    const [doc, global] = await Promise.all([collection.findOne({ date }), collection.findOne({ type: "khaiwal" })]);
-    return Response.json({ success: true, games: doc?.games || {}, khaiwal: global?.khaiwal || doc?.khaiwal || null });
+    const [doc, global] = await Promise.all([collection.findOne({ date }), collection.findOne(KHAIWAL_KEY)]);
+    return Response.json({ success: true, games: doc?.games || {}, khaiwal: global?.khaiwal || null });
   } catch (error) {
     return Response.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
@@ -37,10 +39,16 @@ export async function POST(req: NextRequest) {
     const collection = await customGamesCollection();
     const targetDate = date || dateToday();
     const existing = await collection.findOne({ date: targetDate });
-    const finalKhaiwal = khaiwal || ((khaiwalName != null || whatsapp != null) ? { name: khaiwalName ?? existing?.khaiwal?.name ?? "", whatsapp: whatsapp ?? existing?.khaiwal?.whatsapp ?? "" } : existing?.khaiwal || null);
     const updatedGames = { ...(existing?.games || {}), ...(games || {}) };
-    await collection.updateOne({ date: targetDate }, { $set: { date: targetDate, games: updatedGames, khaiwal: finalKhaiwal, updatedAt: new Date() } }, { upsert: true });
-    if (finalKhaiwal) await collection.updateOne({ type: "khaiwal" }, { $set: { type: "khaiwal", khaiwal: finalKhaiwal, updatedAt: new Date() } }, { upsert: true });
+    await collection.updateOne({ date: targetDate }, { $set: { date: targetDate, games: updatedGames, updatedAt: new Date() } }, { upsert: true });
+    // Only touch the khaiwal when the admin explicitly sent khaiwal fields.
+    // (Previously a stale per-date copy was written back over the live number.)
+    const current = await collection.findOne(KHAIWAL_KEY);
+    let finalKhaiwal = current?.khaiwal || null;
+    if (khaiwal || khaiwalName != null || whatsapp != null) {
+      finalKhaiwal = khaiwal || { name: khaiwalName ?? current?.khaiwal?.name ?? "", whatsapp: whatsapp ?? current?.khaiwal?.whatsapp ?? "" };
+      await collection.updateOne(KHAIWAL_KEY, { $set: { ...KHAIWAL_KEY, khaiwal: finalKhaiwal, updatedAt: new Date() } }, { upsert: true });
+    }
     return Response.json({ success: true, games: updatedGames, khaiwal: finalKhaiwal });
   } catch (error) {
     return Response.json({ success: false, error: (error as Error).message }, { status: 500 });

@@ -25,13 +25,13 @@ export async function getHomeData(): Promise<HomeData> {
   const [homepage, board, monthly, custom, yesterday, global] = await Promise.all([
     getHomepageFromMongo(), getBoardGames(), getMonthlyChartFromMongo(monthName, String(now.getFullYear())),
     customGamesForDate(getISTDateString(0)), customGamesForDate(getISTDateString(-1)),
-    collection.findOne({ type: "khaiwal" }),
+    collection.findOne({ type: "khaiwal", site: "a7satta" }),
   ]);
   const data: HomeData = {
     liveResults: homepage.live, nextResults: homepage.next, restResults: homepage.rest, sk24Games: board,
     sk24Charts: [], monthlyChart: monthly.results,
     monthlyChartMeta: { month: monthly.month, year: monthly.year },
-    customGames: custom.games, customGamesYesterday: yesterday.games, khaiwal: global?.khaiwal || custom.khaiwal || null,
+    customGames: custom.games, customGamesYesterday: yesterday.games, khaiwal: global?.khaiwal || null,
   };
   cache = { data, expiresAt: Date.now() + 60_000 };
   return data;
