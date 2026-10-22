@@ -8,6 +8,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { useLanguage, t } from "@/context/LanguageContext";
 import type { HomeData } from "@/lib/home-data";
 import { getWhatsAppLink, normalizeIndianPhoneNumber } from "@/lib/utils";
+import { KHAIWAL, type HomepageSeo } from "@/lib/khaiwal";
 
 // ─── Types ───
 
@@ -258,16 +259,23 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-2">
-          A7 Satta {format(new Date(), "yyyy")}
-          <br className="md:hidden" />
-          <span className="text-amber-400"> {t("लाइव रिजल्ट", "Live Results", lang)}</span>
+          {initialData.seo?.h1 ? (
+            initialData.seo.h1
+          ) : (
+            <>
+              A7 Satta {format(new Date(), "yyyy")}
+              <br className="md:hidden" />
+              <span className="text-amber-400"> {t("लाइव रिजल्ट", "Live Results", lang)}</span>
+            </>
+          )}
         </h1>
         <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto">
-          {t(
-            "सबसे तेज़ A7 सट्टा रिजल्ट अपडेट। गली, देसावर, गाज़ियाबाद, फरीदाबाद और 100+ गेम्स।",
-            "Fastest A7 Satta result updates. Gali, Desawar, Ghaziabad, Faridabad & 100+ games.",
-            lang
-          )}
+          {initialData.seo?.intro ||
+            t(
+              "सबसे तेज़ A7 सट्टा रिजल्ट अपडेट। गली, देसावर, गाज़ियाबाद, फरीदाबाद और 100+ गेम्स।",
+              "Fastest A7 Satta result updates. Gali, Desawar, Ghaziabad, Faridabad & 100+ games.",
+              lang
+            )}
         </p>
         <div className="mt-4 inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-xs text-gray-400">
           <span className="w-2 h-2 bg-green-400 rounded-full animate-live-pulse" />
@@ -404,7 +412,7 @@ export default function HomeClient({ initialData }: { initialData: HomeData }) {
         </div>
 
         {/* SEO */}
-        <SeoContent lang={lang} />
+        <SeoContent lang={lang} seo={initialData.seo} />
       </div>
     </div>
   );
@@ -765,9 +773,9 @@ function SK24ChartsSection({ tables, lang }: { tables: SK24ChartTable[]; lang: "
 
 
 function WhatsAppContactSection({ lang, khaiwal }: any) {
-  const phone = khaiwal?.whatsapp || "8684857956";
+  const phone = khaiwal?.whatsapp || KHAIWAL.whatsapp;
   const normalizedPhone = normalizeIndianPhoneNumber(phone);
-  const name = khaiwal?.name || "GUDDU BHAI KHAIWAL";
+  const name = khaiwal?.name || KHAIWAL.name;
 
   const games = [
     { name: t("सदर बाजार", "Sadar Bazar", lang), time: "1:30 PM" },
@@ -1076,7 +1084,26 @@ function MonthlyChartSection({
 
 // ─── SEO Content ───
 
-function SeoContent({ lang }: { lang: "hi" | "en" }) {
+function SeoContent({ lang, seo }: { lang: "hi" | "en"; seo?: HomepageSeo }) {
+  // Admin-written SEO content replaces the default block when filled in.
+  if (seo?.content?.trim()) {
+    return (
+      <div className="sa opacity-0 translate-y-8 bg-gray-50 rounded-2xl border border-gray-200 p-5 md:p-8 space-y-4 text-sm text-gray-600 leading-relaxed">
+        {seo.contentHeading && <h2 className="text-xl md:text-2xl font-black text-gray-900">{seo.contentHeading}</h2>}
+        {seo.content
+          .split(/\n\s*\n/)
+          .map((para) => para.trim())
+          .filter(Boolean)
+          .map((para, i) =>
+            para.startsWith("## ") ? (
+              <h3 key={i} className="text-lg font-bold text-gray-900">{para.slice(3)}</h3>
+            ) : (
+              <p key={i} className="whitespace-pre-line">{para}</p>
+            )
+          )}
+      </div>
+    );
+  }
   return (
     <div className="sa opacity-0 translate-y-8 bg-gray-50 rounded-2xl border border-gray-200 p-5 md:p-8 space-y-4 text-sm text-gray-600 leading-relaxed">
       <h2 className="text-xl md:text-2xl font-black text-gray-900">

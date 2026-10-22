@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { customGamesCollection } from "@/lib/mongodb";
+import { getKhaiwal } from "@/lib/site-settings";
 
-const ADMIN_EMAIL = "kapil123@gmail.com";
-const ADMIN_PASSWORD = "Kapil@1997";
+// Credentials live ONLY in the server env (.env.local on the VPS), never in client code.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const GAME_KEYS = ["kohlapur", "manipur", "up-bazar", "palwal-city", "mathura-city"];
-const isAuthed = (email?: string, password?: string) => email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
-// Site-specific key so other sites sharing this Mongo collection can never overwrite our number.
-const KHAIWAL_KEY = { type: "khaiwal", site: "a7satta" };
+const isAuthed = (email?: string, password?: string) =>
+  Boolean(ADMIN_EMAIL && ADMIN_PASSWORD) && email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
 const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 
 export async function GET(req: NextRequest) {
@@ -25,8 +26,8 @@ export async function GET(req: NextRequest) {
       return Response.json({ success: true, entries });
     }
     const date = params.get("date") || dateToday();
-    const [doc, global] = await Promise.all([collection.findOne({ date }), collection.findOne(KHAIWAL_KEY)]);
-    return Response.json({ success: true, games: doc?.games || {}, khaiwal: global?.khaiwal || null });
+    const doc = await collection.findOne({ date });
+    return Response.json({ success: true, games: doc?.games || {}, khaiwal: await getKhaiwal() });
   } catch (error) {
     return Response.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
@@ -34,22 +35,21 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, games, khaiwalName, whatsapp, khaiwal, date } = await req.json();
+    const { email, password, games, date, action } = await req.json();
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) return Response.json({ success: false, error: "ADMIN_EMAIL / ADMIN_PASSWORD not set in .env.local" }, { status: 500 });
     if (!isAuthed(email, password)) return Response.json({ success: false, error: "Invalid credentials" }, { status: 401 });
-    const collection = await customGamesCollection();
-    const targetDate = date || dateToday();
-    const existing = await collection.findOne({ date: targetDate });
-    const updatedGames = { ...(existing?.games || {}), ...(games || {}) };
-    await collection.updateOne({ date: targetDate }, { $set: { date: targetDate, games: updatedGames, updatedAt: new Date() } }, { upsert: true });
-    // Only touch the khaiwal when the admin explicitly sent khaiwal fields.
-    // (Previously a stale per-date copy was written back over the live number.)
-    const current = await collection.findOne(KHAIWAL_KEY);
-    let finalKhaiwal = current?.khaiwal || null;
-    if (khaiwal || khaiwalName != null || whatsapp != null) {
-      finalKhaiwal = khaiwal || { name: khaiwalName ?? current?.khaiwal?.name ?? "", whatsapp: whatsapp ?? current?.khaiwal?.whatsapp ?? "" };
-      await collection.updateOne(KHAIWAL_KEY, { $set: { ...KHAIWAL_KEY, khaiwal: finalKhaiwal, updatedAt: new Date() } }, { upsert: true });
+
+    if (action === "login") return Response.json({ success: true });
+
+    let updatedGames: Record<string, string> | undefined;
+    if (games && Object.keys(games).length) {
+      const collection = await customGamesCollection();
+      const targetDate = date || dateToday();
+      const existing = await collection.findOne({ date: targetDate });
+      updatedGames = { ...(existing?.games || {}), ...games };
+      await collection.updateOne({ date: targetDate }, { $set: { date: targetDate, games: updatedGames, updatedAt: new Date() } }, { upsert: true });
     }
-    return Response.json({ success: true, games: updatedGames, khaiwal: finalKhaiwal });
+    return Response.json({ success: true, games: updatedGames, khaiwal: await getKhaiwal() });
   } catch (error) {
     return Response.json({ success: false, error: (error as Error).message }, { status: 500 });
   }

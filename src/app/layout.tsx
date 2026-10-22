@@ -145,6 +145,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
+import { getKhaiwal } from "@/lib/site-settings";
 import { LanguageProvider } from "@/context/LanguageContext";
 
 const geistSans = Geist({
@@ -306,11 +307,15 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+// Safety net: pages refresh at least every 5 min; admin saves refresh them instantly.
+export const revalidate = 300;
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const khaiwal = await getKhaiwal();
   return (
     <html
       lang="en"
@@ -334,7 +339,7 @@ export default function RootLayout({
 
           {/* <Footer /> */}
 
-          <WhatsAppButton />
+          <WhatsAppButton phone={khaiwal.whatsapp} />
         </LanguageProvider>
       </body>
     </html>

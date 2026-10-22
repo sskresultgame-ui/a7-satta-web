@@ -191,3 +191,14 @@ export async function getMonthlyChartFromMongo(month: string, year: string): Pro
 export async function customGamesCollection() {
   return (await db("fast")).collection("custom_games");
 }
+
+// ─── A7 Satta admin settings ───
+// Collections used ONLY by a7satta.co. No other site uses these names, so no
+// other site's code can read or overwrite them.
+export async function a7AdminSettingsCollection() {
+  return (await db("fast")).collection("a7satta_co_admin_settings");
+}
+
+export async function a7AdminLogCollection() {
+  return (await db("fast")).collection("a7satta_co_admin_log");
+}
