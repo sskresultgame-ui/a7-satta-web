@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { isAdmin, requestMeta } from "@/lib/admin-auth";
 import { getAdminLog, getHomepageSeo, getKhaiwal, saveSetting } from "@/lib/site-settings";
 import type { HomepageSeo, Khaiwal } from "@/lib/khaiwal";
+import { sanitizeSeoHtml } from "@/lib/seo-html";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export async function PUT(req: NextRequest) {
         h1: str(value?.h1, 200),
         intro: str(value?.intro, 500),
         contentHeading: str(value?.contentHeading, 200),
-        content: str(value?.content, 20000),
+        content: sanitizeSeoHtml(str(value?.content, 50000)), // HTML allowed, scripts removed
       };
       if (!seo.metaTitle || !seo.metaDescription) {
         return NextResponse.json({ success: false, error: "Meta title and meta description are required" }, { status: 400 });

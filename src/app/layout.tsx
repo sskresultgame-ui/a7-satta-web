@@ -146,6 +146,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
 import { getKhaiwal } from "@/lib/site-settings";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { LanguageProvider } from "@/context/LanguageContext";
 
 const geistSans = Geist({
@@ -341,6 +342,7 @@ export default async function RootLayout({
 
           <WhatsAppButton phone={khaiwal.whatsapp} />
         </LanguageProvider>
+        <GoogleAnalytics />
       </body>
     </html>
   );

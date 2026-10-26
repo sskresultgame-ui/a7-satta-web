@@ -9,6 +9,7 @@ import { useLanguage, t } from "@/context/LanguageContext";
 import type { HomeData } from "@/lib/home-data";
 import { getWhatsAppLink, normalizeIndianPhoneNumber } from "@/lib/utils";
 import { KHAIWAL, type HomepageSeo } from "@/lib/khaiwal";
+import { toSeoHtml } from "@/lib/seo-html";
 
 // ─── Types ───
 
@@ -865,6 +866,7 @@ function WhatsAppContactSection({ lang, khaiwal }: any) {
         <div className="text-center px-4">
           <a
             href={`tel:+${normalizedPhone}`}
+            data-track-location="home_khaiwal_phone"
             className="inline-block text-3xl md:text-4xl font-black text-blue-700 border-b-4 border-blue-700"
           >
             +{normalizedPhone}
@@ -886,6 +888,7 @@ function WhatsAppContactSection({ lang, khaiwal }: any) {
         <div className="px-4 pb-8 pt-5 flex justify-center">
           <a
             href={getWhatsAppLink(phone, "A7 SATTA")}
+            data-track-location="home_khaiwal_whatsapp"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-black text-lg shadow-lg hover:scale-105 transition-all"
@@ -1090,17 +1093,7 @@ function SeoContent({ lang, seo }: { lang: "hi" | "en"; seo?: HomepageSeo }) {
     return (
       <div className="sa opacity-0 translate-y-8 bg-gray-50 rounded-2xl border border-gray-200 p-5 md:p-8 space-y-4 text-sm text-gray-600 leading-relaxed">
         {seo.contentHeading && <h2 className="text-xl md:text-2xl font-black text-gray-900">{seo.contentHeading}</h2>}
-        {seo.content
-          .split(/\n\s*\n/)
-          .map((para) => para.trim())
-          .filter(Boolean)
-          .map((para, i) =>
-            para.startsWith("## ") ? (
-              <h3 key={i} className="text-lg font-bold text-gray-900">{para.slice(3)}</h3>
-            ) : (
-              <p key={i} className="whitespace-pre-line">{para}</p>
-            )
-          )}
+        <div className="seo-html" dangerouslySetInnerHTML={{ __html: toSeoHtml(seo.content) }} />
       </div>
     );
   }

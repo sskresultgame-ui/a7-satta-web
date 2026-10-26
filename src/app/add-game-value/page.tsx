@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_HOMEPAGE_SEO, KHAIWAL, fillDate, type HomepageSeo, type Khaiwal } from "@/lib/khaiwal";
+import { toSeoHtml } from "@/lib/seo-html";
+
+const HTML_EXAMPLE = `<h2>A7 Satta Result Today</h2>\n<p>Check the <strong>fastest A7 Satta result</strong> for Gali, Desawar, Faridabad and Ghaziabad.</p>\n\n<h3>Why choose A7Satta.co?</h3>\n<ul>\n  <li>Live results</li>\n  <li>Old charts from 2015</li>\n</ul>`;
 
 type LogEntry = { id: string; section: "khaiwal" | "homepageSeo"; ip: string; userAgent: string; at: string; value: Record<string, string>; previous: Record<string, string> | null };
 type Tab = "seo" | "khaiwal" | "history";
@@ -171,8 +174,33 @@ export default function AdminPage() {
             <label className={label}>SEO content heading (bottom of homepage)</label>
             <input className={input} value={seo.contentHeading} onChange={setField("contentHeading")} placeholder="Understanding A7 Satta & A7Satta.co" />
 
-            <label className={label}>SEO content — leave a blank line between paragraphs, start a line with ## for a sub-heading</label>
-            <textarea className={input} rows={12} value={seo.content} onChange={setField("content")} placeholder="Default bilingual SEO block is shown while this is empty." />
+            <div className="flex items-end justify-between gap-2">
+              <label className={label}>
+                SEO content (HTML) — use any tags: &lt;h2&gt;, &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;&lt;li&gt;, &lt;a href&gt;, &lt;strong&gt;, &lt;table&gt;, &lt;img&gt;…
+              </label>
+              {!seo.content.trim() && (
+                <button type="button" onClick={() => setSeo({ ...seo, content: HTML_EXAMPLE })} className="text-xs text-amber-600 font-bold whitespace-nowrap mb-1">
+                  Insert example
+                </button>
+              )}
+            </div>
+            <textarea
+              className={`${input} font-mono text-xs`}
+              rows={16}
+              spellCheck={false}
+              value={seo.content}
+              onChange={setField("content")}
+              placeholder="<h2>Your heading</h2>&#10;<p>Your paragraph…</p>&#10;&#10;Default bilingual SEO block is shown while this is empty."
+            />
+            <p className="text-xs text-gray-400 mt-1">Scripts, iframes and onclick-type code are removed automatically when you save.</p>
+
+            {seo.content.trim() && (
+              <div className="mt-4 border rounded-xl p-4 bg-gray-50">
+                <p className="text-xs text-gray-400 mb-3">Live preview (how it looks on the homepage)</p>
+                {seo.contentHeading && <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-4">{seo.contentHeading}</h2>}
+                <div className="seo-html" dangerouslySetInnerHTML={{ __html: toSeoHtml(seo.content) }} />
+              </div>
+            )}
 
             <button
               onClick={() => save("homepageSeo", seo)}

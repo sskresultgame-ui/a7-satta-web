@@ -24,6 +24,7 @@ export default function ContactClient({ phone }: { phone: string }) {
           {/* WhatsApp Card */}
           <a
             href={getWhatsAppLink(phone, "A7 SATTA")}
+            data-track-location="contact_whatsapp_card"
             target="_blank"
             rel="noopener noreferrer"
             className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex items-start gap-4 hover:shadow-lg hover:border-green-300 transition-all group"
@@ -43,6 +44,7 @@ export default function ContactClient({ phone }: { phone: string }) {
           {/* Phone Card */}
           <a
             href={`tel:+${normalizedPhone}`}
+            data-track-location="contact_phone_card"
             className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex items-start gap-4 hover:shadow-lg hover:border-blue-300 transition-all group"
           >
             <div className="p-3 rounded-xl bg-blue-600 text-white shrink-0 group-hover:scale-110 transition-transform">
@@ -67,6 +69,7 @@ export default function ContactClient({ phone }: { phone: string }) {
           <p className="text-amber-400 font-black text-2xl mb-4">A7 SATTA</p>
           <a
             href={getWhatsAppLink(phone, "A7 SATTA")}
+            data-track-location="contact_whatsapp_now"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-xl shadow-green-500/25 transition-all hover:scale-105"
