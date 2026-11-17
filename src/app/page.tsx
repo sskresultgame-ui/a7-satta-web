@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { absolute: title },
     description,
     keywords: seo.keywords.split(",").map((k) => k.trim()).filter(Boolean),
-    openGraph: { type: "website", locale: "en_IN", url: "https://a7satta.co", siteName: "A7 Satta", title, description, images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "A7 Satta" }] },
+    openGraph: { type: "website", locale: "en_IN", url: "https://www.a7satta.co", siteName: "A7 Satta", title, description, images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "A7 Satta" }] },
     twitter: { card: "summary_large_image", title, description, images: ["/og-image.jpg"] },
     alternates: { canonical: "https://www.a7satta.co" },
   };

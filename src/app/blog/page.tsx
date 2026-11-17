@@ -6,12 +6,12 @@ export const metadata: Metadata = {
   title: "Satta King Blog — Result, Chart & Record Guides",
   description:
     "A7Satta.co ब्लॉग पर Satta King Result, Chart और पुराने रिकॉर्ड से जुड़ी उपयोगी जानकारी, गाइड और टिप्स पढ़ें। डेली रिजल्ट, हिस्टोरिकल चार्ट और यूज़र एक्सपीरियंस की पूरी जानकारी।",
-  alternates: { canonical: "https://a7satta.co/blog" },
+  alternates: { canonical: "https://www.a7satta.co/blog" },
   openGraph: {
     title: "Satta King Blog — A7Satta.co",
     description:
       "Satta King Result, Chart और पुराने रिकॉर्ड से जुड़ी उपयोगी जानकारी और गाइड।",
-    url: "https://a7satta.co/blog",
+    url: "https://www.a7satta.co/blog",
   },
 };
 

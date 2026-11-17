@@ -70,7 +70,7 @@
 //     openGraph: {
 //       type: "website",
 //       locale: "en_IN",
-//       url: "https://a7satta.co",
+//       url: "https://www.a7satta.co",
 //       siteName: "A7 Satta",
 
 //       title: `A7 Satta | ${formattedDate} Live Satta King Result`,
@@ -107,10 +107,10 @@
 //     },
 
 //     alternates: {
-//       canonical: "https://a7satta.co",
+//       canonical: "https://www.a7satta.co",
 //     },
 
-//     metadataBase: new URL("https://a7satta.co"),
+//     metadataBase: new URL("https://www.a7satta.co"),
 //   };
 // }
 
@@ -264,7 +264,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       locale: "en_IN",
-      url: "https://a7satta.co",
+      url: "https://www.a7satta.co",
       siteName: "A7 Satta",
 
       title: `A7 Satta | ${formattedDate} Live Satta King Result`,
@@ -304,7 +304,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: "https://www.a7satta.co",
     },
 
-    metadataBase: new URL("https://a7satta.co"),
+    metadataBase: new URL("https://www.a7satta.co"),
   };
 }
 

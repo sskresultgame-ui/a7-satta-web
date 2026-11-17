@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { getBoardGames } from "@/lib/mongodb";
 import { BLOG_POSTS } from "@/lib/blog-data";
 
-const BASE_URL = "https://a7satta.co";
+const BASE_URL = "https://www.a7satta.co";
 
 // Refresh the sitemap at most every hour.
 export const revalidate = 3600;

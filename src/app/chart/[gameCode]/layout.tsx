@@ -132,7 +132,7 @@ export async function generateMetadata({
     meta?.description ??
     `Check the ${name} Satta King chart, daily results, old records, and complete chart history on A7 Satta.`;
 
-  const url = `https://a7satta.co/chart/${encodeURIComponent(gameCode)}`;
+  const url = `https://www.a7satta.co/chart/${encodeURIComponent(gameCode)}`;
 
   return {
     title,

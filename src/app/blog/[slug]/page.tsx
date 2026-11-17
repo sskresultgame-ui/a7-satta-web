@@ -24,7 +24,7 @@ export async function generateMetadata({
     return { title: "Blog Not Found" };
   }
 
-  const url = `https://a7satta.co/blog/${post.slug}`;
+  const url = `https://www.a7satta.co/blog/${post.slug}`;
   return {
     title: post.title,
     description: post.excerpt,
@@ -155,7 +155,7 @@ export default async function BlogDetailPage({
     },
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `https://a7satta.co/blog/${post.slug}`,
+      "@id": `https://www.a7satta.co/blog/${post.slug}`,
     },
   };
 
